@@ -11,6 +11,8 @@ import {
   saves, 
   comments,
   collections,
+  follows,
+  notificationBatches,
   eq, 
   and, 
   desc, 
@@ -29,6 +31,7 @@ import { getDb } from '../lib/db';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import type { CloudflareEnv, Variables } from '../types/env';
 import { deleteR2Object, getR2Client } from '../lib/r2';
+import { sendPushToUser } from '../lib/notifications';
 
 const app = new Hono<{ Bindings: CloudflareEnv; Variables: Variables }>();
 
@@ -245,6 +248,28 @@ app.post('/:id/publish', requireAuth, zValidator('json', PublishRecipeSchema), a
     heroImageUrl: body.hero_image_url || recipe.heroImageUrl,
   }).where(eq(recipes.id, id));
 
+  // Notify followers — fire-and-forget, never block the response
+  c.executionCtx.waitUntil((async () => {
+    try {
+      const followerRows = await db
+        .select({ userId: follows.followerId })
+        .from(follows)
+        .where(eq(follows.followingId, user.id));
+
+      await Promise.all(
+        followerRows.slice(0, 100).map(f =>
+          sendPushToUser(db, f.userId, {
+            title: `${user.displayName} posted a new recipe`,
+            body: recipe.title,
+            data: { type: 'new_recipe', recipeId: recipe.id },
+          })
+        )
+      );
+    } catch {
+      // Push failures never affect the publish response
+    }
+  })());
+
   return c.json({ success: true });
 });
 
@@ -291,11 +316,52 @@ app.post('/:id/like', requireAuth, async (c) => {
       } else {
         await tx.insert(likes).values({ userId: user.id, recipeId: id });
         const [updated] = await tx.update(recipes).set({ likeCount: sql`${recipes.likeCount} + 1` }).where(eq(recipes.id, id)).returning();
-        return { liked: true, like_count: updated.likeCount || 0 };
+        return { liked: true, like_count: updated.likeCount || 0, recipe: updated };
       }
     });
-    return c.json(result);
-  } catch (e) { return c.json({ error: 'Failed to toggle like' }, 500); }
+
+    // On a new like (not unlike): upsert notification batch — fire-and-forget
+    if (result.liked) {
+      const likedRecipe = (result as typeof result & { recipe?: typeof recipes.$inferSelect }).recipe;
+      if (likedRecipe && likedRecipe.userId !== user.id) {
+        c.executionCtx.waitUntil((async () => {
+          try {
+            const [existing] = await db
+              .select()
+              .from(notificationBatches)
+              .where(
+                and(
+                  eq(notificationBatches.userId, likedRecipe.userId),
+                  eq(notificationBatches.type, 'likes'),
+                  eq(notificationBatches.recipeId, id),
+                  eq(notificationBatches.sent, false)
+                )
+              )
+              .limit(1);
+
+            if (existing) {
+              await db
+                .update(notificationBatches)
+                .set({ count: existing.count + 1, lastActorName: user.displayName })
+                .where(eq(notificationBatches.id, existing.id));
+            } else {
+              await db.insert(notificationBatches).values({
+                userId: likedRecipe.userId,
+                type: 'likes',
+                recipeId: id,
+                count: 1,
+                lastActorName: user.displayName,
+              });
+            }
+          } catch {
+            // Notification batch failure never affects the like response
+          }
+        })());
+      }
+    }
+
+    return c.json({ liked: result.liked, like_count: result.like_count });
+  } catch { return c.json({ error: 'Failed to toggle like' }, 500); }
 });
 
 app.post('/:id/save', requireAuth, zValidator('json', z.object({ collection_id: z.string().uuid().optional() }).optional()), async (c) => {
@@ -380,6 +446,28 @@ app.post('/:id/comments', requireAuth, zValidator('json', z.object({ body: z.str
   }
 
   const [newComment] = await db.insert(comments).values({ recipeId, userId: user.id, body, parentId: parent_id }).returning();
+
+  // Notify the recipe owner — fire-and-forget, skip if commenter is the owner
+  c.executionCtx.waitUntil((async () => {
+    try {
+      const [recipe] = await db
+        .select({ userId: recipes.userId, title: recipes.title })
+        .from(recipes)
+        .where(eq(recipes.id, recipeId))
+        .limit(1);
+
+      if (recipe && recipe.userId !== user.id) {
+        await sendPushToUser(db, recipe.userId, {
+          title: `${user.displayName} commented on ${recipe.title}`,
+          body: body.slice(0, 80),
+          data: { type: 'comment', recipeId },
+        });
+      }
+    } catch {
+      // Push failure never affects the comment response
+    }
+  })());
+
   return c.json({ ...newComment, author: { id: user.id, username: user.username, avatarUrl: user.avatarUrl } }, 201);
 });
 

@@ -11,6 +11,8 @@ import { userRoutes } from './routes/users';
 import { aiRoutes } from './routes/ai';
 import { feedRoutes } from './routes/feed';
 import { uploadRoutes } from './routes/uploads';
+import { createDb } from '@dishly/db';
+import { sendLikeNotifications } from './lib/jobs/send-like-notifications';
 
 const app = new Hono<{ Bindings: CloudflareEnv, Variables: Variables }>();
 
@@ -37,7 +39,7 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => {
   console.error(`[${c.req.method}] ${c.req.url} - Error:`, err);
   
-  const status = (err as any).status || 500;
+  const status = (err as { status?: number }).status ?? 500;
   const message = c.env.ENVIRONMENT === 'production' && status === 500 
     ? 'Internal Server Error' 
     : err.message;
@@ -65,4 +67,10 @@ app.route('/ai', aiRoutes);
 app.route('/feed', feedRoutes);
 app.route('/uploads', uploadRoutes);
 
-export default app;
+// Named export for Cloudflare Workers — supports both fetch (HTTP) and scheduled (Cron)
+export default {
+  fetch: app.fetch.bind(app),
+  async scheduled(_event: ScheduledEvent, env: CloudflareEnv, ctx: ExecutionContext) {
+    ctx.waitUntil(sendLikeNotifications(createDb(env.DATABASE_URL)));
+  },
+};

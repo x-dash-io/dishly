@@ -20,3 +20,6 @@ R2_ACCOUNT_ID = ""
 [[r2_buckets]]
 binding = "DISHLY_BUCKET"
 bucket_name = "dishly-media"
+
+[triggers]
+crons = ["*/5 * * * *"]

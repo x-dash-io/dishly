@@ -175,7 +175,7 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
       .set({
         username: body.username,
         displayName: body.display_name,
-        avatarUrl: (body as any).avatar_url ?? currentUser.avatarUrl,
+        avatarUrl: (body as Record<string, unknown>).avatar_url as string ?? currentUser.avatarUrl,
         bio: body.bio,
         dietaryPrefs: body.dietary_prefs as string[],
         skillLevel: body.skill_level as "beginner" | "intermediate" | "advanced",
@@ -267,4 +267,27 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
       .limit(1);
 
     return c.json({ available: !existing });
-  });
+  })
+  /**
+   * POST /users/me/push-token
+   * Store or update the user's Expo push notification token.
+   */
+  .post(
+    '/me/push-token',
+    requireAuth,
+    zValidator('json', z.object({
+      token: z.string().startsWith('ExponentPushToken['),
+    })),
+    async (c) => {
+      const currentUser = c.get('user')!;
+      const { token } = c.req.valid('json');
+      const db = getDb(c);
+
+      await db
+        .update(users)
+        .set({ pushToken: token })
+        .where(eq(users.id, currentUser.id));
+
+      return c.json({ ok: true });
+    }
+  );

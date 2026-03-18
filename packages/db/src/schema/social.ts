@@ -57,3 +57,18 @@ export const comments = pgTable('comments', {
   index('comments_user_id_idx').on(table.userId),
   index('comments_parent_id_idx').on(table.parentId),
 ]);
+
+export const notificationBatches = pgTable('notification_batches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'likes'
+  recipeId: uuid('recipe_id').notNull().references(() => recipes.id, { onDelete: 'cascade' }),
+  count: integer('count').notNull().default(1),
+  lastActorName: text('last_actor_name').notNull(),
+  sent: boolean('sent').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [
+  index('notification_batches_user_id_idx').on(table.userId),
+  index('notification_batches_sent_idx').on(table.sent),
+]);
