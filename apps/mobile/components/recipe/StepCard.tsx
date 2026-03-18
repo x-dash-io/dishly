@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   numberText: {
-    color: '#FFF',
+    color: COLORS.textInverse,
     fontWeight: '700',
     fontSize: 14,
   },

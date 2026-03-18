@@ -30,6 +30,8 @@ export default function AppLayout() {
         <Stack.Screen name="user/[username]" />
         <Stack.Screen name="ai-generate" />
         <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="meal-planner" />
+        <Stack.Screen name="grocery-list" />
         <Stack.Screen name="create" options={{ presentation: 'modal' }} />
       </Stack>
     </>

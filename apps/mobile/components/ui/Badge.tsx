@@ -41,7 +41,7 @@ const VARIANT_STYLES: Record<string, { container: ViewStyle; text: TextStyle }> 
   },
   ai: {
     container: { backgroundColor: '#EDE9FE' },
-    text: { color: '#5B21B6' },
+    text: { color: COLORS.aiPurple },
   },
   success: {
     container: { backgroundColor: '#EAF3DE' },

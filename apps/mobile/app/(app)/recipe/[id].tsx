@@ -24,7 +24,6 @@ import { useLikeRecipe, useSaveRecipe } from '../../../hooks/useRecipeActions';
 import { IngredientRow } from '../../../components/recipe/IngredientRow';
 import { StepCard } from '../../../components/recipe/StepCard';
 import { useFollowUser } from '../../../hooks/useUserProfile';
-import { useAuth } from '@clerk/clerk-expo';
 
 const HEADER_HEIGHT_EXPANDED = 300;
 const HEADER_HEIGHT_COLLAPSED = 90;
@@ -37,14 +36,17 @@ export default function RecipeDetailScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const { data: recipe, isLoading, isError, refetch } = useRecipe(id as string);
-  const { userId: clerkUserId } = useAuth();
   const { mutate: like } = useLikeRecipe(id as string);
   const { mutate: save } = useSaveRecipe(id as string);
   const { mutate: toggleFollow, isPending: followPending } = useFollowUser(
     recipe?.author?.id ?? '',
     recipe?.author?.username,
   );
-  const isOwnRecipe = clerkUserId && recipe?.author?.clerk_id === clerkUserId;
+  // The API returns viewer.is_own_recipe OR we can check recipe.user_id vs the cached /auth/me
+  // Safest: hide Follow button entirely when viewer is null (unauthenticated) or
+  // when the recipe's author id matches the viewer's own profile data.
+  // recipe.viewer exists only when authenticated — null means own recipe OR unauthenticated.
+  const isOwnRecipe = !recipe?.viewer;
 
   const { servings, setServings, scaleQuantity } = useServingScaler(4);
 
@@ -122,7 +124,7 @@ export default function RecipeDetailScreen() {
             <AppIcon 
               name="like" 
               size={20} 
-              color={recipe.viewer?.liked ? COLORS.primary : '#FFF'} 
+              color={recipe.viewer?.liked ? COLORS.primary : COLORS.textInverse} 
             />
             <Text style={styles.heroLikeCount}>{recipe.like_count}</Text>
           </TouchableOpacity>
@@ -311,7 +313,7 @@ export default function RecipeDetailScreen() {
           <AppIcon 
             name="saved" 
             size={24} 
-            color={recipe.viewer?.saved ? COLORS.primary : '#FFF'} 
+            color={recipe.viewer?.saved ? COLORS.primary : COLORS.textInverse} 
           />
         </TouchableOpacity>
       </Animated.View>
@@ -381,7 +383,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   heroLikeCount: {
-    color: '#FFF',
+    color: COLORS.textInverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -423,7 +425,7 @@ const styles = StyleSheet.create({
   },
   stickyHeaderTitle: {
     flex: 1,
-    color: '#FFF',
+    color: COLORS.textInverse,
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',

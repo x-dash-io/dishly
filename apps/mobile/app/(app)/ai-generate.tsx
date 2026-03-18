@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   filterChipActive: { backgroundColor: COLORS.aiPurple, borderColor: COLORS.aiPurple },
   filterChipText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 13 },
-  filterChipTextActive: { color: '#FFF' },
+  filterChipTextActive: { color: COLORS.textInverse },
   servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 12 },
   stepperBtn: {
     width: 44, height: 44, borderRadius: 12,
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
   },
-  generateBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
+  generateBtnText: { color: COLORS.textInverse, fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
   generatingRow: {
     marginTop: 32,
     flexDirection: 'row',

@@ -13,7 +13,7 @@ const FallbackColors = [
   '#E8531A', // Spice Orange
   '#3D7A4F', // Forest Green
   '#7C3AED', // AI Purple
-  '#5E3C2C', // Mahogany
+  COLORS.mahogany, // Mahogany
   '#D97706', // Warning Gold
 ];
 
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   initials: {
-    color: '#FFFFFF',
+    color: COLORS.textInverse,
     fontWeight: '700',
   },
 });

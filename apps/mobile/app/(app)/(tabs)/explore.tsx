@@ -78,7 +78,7 @@ export default function ExploreScreen() {
     setDebouncedQuery('');
   };
 
-  const toggleFilter = (type: keyof ExploreFilters, value: any) => {
+  const toggleFilter = (type: keyof ExploreFilters, value: string | number) => {
     setFilters(prev => {
       if (prev[type] === value && type !== 'cuisine') {
         const next = { ...prev };

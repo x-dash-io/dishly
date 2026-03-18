@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   titleInput: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#4A2A18',
+    color: COLORS.mahogany,
   },
   descInput: {
     fontSize: 15,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   chipTextActive: {
-    color: '#FFF',
+    color: COLORS.textInverse,
   },
   difficultyRow: {
     flexDirection: 'row',

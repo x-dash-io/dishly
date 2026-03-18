@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -16,16 +17,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FDF6ED',
+    backgroundColor: COLORS.background,
   },
   text: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#5E3C2C',
+    color: COLORS.mahogany,
   },
   subtext: {
     fontSize: 16,
-    color: '#999',
+    color: COLORS.textMuted,
     marginTop: 8,
   },
 });

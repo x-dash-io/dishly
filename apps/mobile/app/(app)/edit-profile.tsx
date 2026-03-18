@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tagTextSelected: {
-    color: '#fff',
+    color: COLORS.textInverse,
   },
   skillRow: {
     flexDirection: 'row',

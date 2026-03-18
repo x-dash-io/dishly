@@ -102,8 +102,8 @@ export default function CreateStep2PhotosScreen() {
                 <ActivityIndicator size="large" color={COLORS.primary} />
               ) : (
                 <>
-                  <AppIcon name={coverImageUri ? 'aiImage' : 'add'} size={32} color={coverImageUri ? '#FFF' : COLORS.textMuted} />
-                  <Text style={[styles.uploadText, coverImageUri && { color: '#FFF' }]}>
+                  <AppIcon name={coverImageUri ? 'aiImage' : 'add'} size={32} color={coverImageUri ? COLORS.textInverse : COLORS.textMuted} />
+                  <Text style={[styles.uploadText, coverImageUri && { color: COLORS.textInverse }]}>
                     {coverImageUri ? 'Tap to change' : 'Upload cover photo'}
                   </Text>
                 </>
@@ -142,8 +142,8 @@ export default function CreateStep2PhotosScreen() {
                 <ActivityIndicator size="large" color={COLORS.primary} />
               ) : (
                 <>
-                  <AppIcon name={heroImageUri ? 'aiImage' : 'add'} size={32} color={heroImageUri ? '#FFF' : COLORS.primary} />
-                  <Text style={[styles.uploadText, heroImageUri ? { color: '#FFF' } : { color: COLORS.primary }]}>
+                  <AppIcon name={heroImageUri ? 'aiImage' : 'add'} size={32} color={heroImageUri ? COLORS.textInverse : COLORS.primary} />
+                  <Text style={[styles.uploadText, heroImageUri ? { color: COLORS.textInverse } : { color: COLORS.primary }]}>
                     {heroImageUri ? 'Tap to change' : 'Upload final dish photo'}
                   </Text>
                 </>

@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontSize: 24,
     lineHeight: 36,
-    color: '#4A2A18', // mahogany
+    color: COLORS.mahogany, // mahogany
   },
   timerCard: {
     marginHorizontal: 24,
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   completionCongrats: {
     fontFamily: 'Georgia',
     fontSize: 32,
-    color: '#4A2A18',
+    color: COLORS.mahogany,
     marginBottom: 8,
   },
   completionTitle: {

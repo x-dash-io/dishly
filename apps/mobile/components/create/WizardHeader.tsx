@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontSize: 28,
     fontWeight: '700',
-    color: '#4A2A18', // mahogany
+    color: COLORS.mahogany, // mahogany
     marginBottom: 16,
   },
   progressBg: {
