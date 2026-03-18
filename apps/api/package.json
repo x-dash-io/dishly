@@ -1,0 +1,38 @@
+{
+	"name": "api",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.12.4",
+		"@cloudflare/workers-types": "^4.20260317.1",
+		"@types/node": "^25.5.0",
+		"drizzle-kit": "^0.31.10",
+		"typescript": "^5.5.2",
+		"vitest": "~3.2.0",
+		"wrangler": "^4.75.0"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1011.0",
+		"@aws-sdk/s3-request-presigner": "^3.1011.0",
+		"@clerk/backend": "^3.2.1",
+		"@dishly/db": "workspace:*",
+		"@dishly/validators": "workspace:*",
+		"@google/generative-ai": "^0.24.1",
+		"@hono/zod-validator": "^0.7.6",
+		"@neondatabase/serverless": "^1.0.2",
+		"@upstash/ratelimit": "^2.0.8",
+		"@upstash/redis": "^1.37.0",
+		"drizzle-orm": "^0.39.3",
+		"hono": "^4.12.8",
+		"svix": "^1.88.0",
+		"zod": "^3.24.2"
+	}
+}
