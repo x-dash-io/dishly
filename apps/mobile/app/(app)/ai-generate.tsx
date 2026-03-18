@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.aiPurple + '40',
   },
   dishHintTitle: { fontSize: 17, fontWeight: '700', color: COLORS.aiPurple, textAlign: 'center' },
-  dishHintText: { fontSize: 14, color: '#5B21B6', textAlign: 'center', lineHeight: 22 },
+  dishHintText: { fontSize: 14, color: COLORS.aiPurple, textAlign: 'center', lineHeight: 22 },
 
   // Text
   textContainer: { flex: 1, padding: 24 },

@@ -22,8 +22,8 @@ export const uploadRoutes = new Hono<{ Bindings: CloudflareEnv }>()
     ),
     async (c) => {
       const { purpose, contentType, fileSizeBytes } = c.req.valid('json');
-      // @ts-ignore - clerkId is injected by requireAuth middleware
-      const userId = (c.get('clerkId') as string) || 'anonymous'; 
+      // clerkId is set by verifyClerkToken middleware
+      const userId = (c.get('clerkId') ?? 'anonymous') as string;
 
       // Map content type to extension
       const extMap: Record<string, string> = {

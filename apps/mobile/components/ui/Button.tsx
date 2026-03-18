@@ -36,7 +36,7 @@ export function Button({
   fullWidth = false,
   style,
 }: ButtonProps) {
-  const textColor = variant === 'ghost' ? COLORS.primary : '#FFFFFF';
+  const textColor = variant === 'ghost' ? COLORS.primary : COLORS.textInverse;
 
   return (
     <TouchableOpacity

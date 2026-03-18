@@ -24,7 +24,7 @@ export function rateLimit(type: 'api' | 'ai'): MiddlewareHandler {
     const env = c.env as CloudflareEnv;
     const limiter = type === 'api' ? getApiLimiter(env) : getAiLimiter(env);
     
-    const user = c.get('user') as any;
+    const user = c.get('user');
     const identifier = user?.id || c.req.header('cf-connecting-ip') || 'anonymous';
     
     const { success, limit, remaining, reset } = await limiter.limit(identifier);

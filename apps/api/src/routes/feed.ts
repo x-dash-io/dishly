@@ -83,7 +83,7 @@ async function transformToRecipeCard(
 // --- GET /feed/home ---
 app.get('/home', requireAuth, zValidator('query', PaginationSchema), async (c) => {
   const db = getDb(c);
-  const user = c.get('user') as any;
+  const user = c.get('user')!;
   const { limit, cursor } = c.req.valid('query');
 
   const decoded = cursor ? decodeCursor(cursor) : null;
@@ -196,7 +196,7 @@ const ExploreQuerySchema = PaginationSchema.extend({
 
 app.get('/explore', optionalAuth, zValidator('query', ExploreQuerySchema), async (c) => {
   const db = getDb(c);
-  const user = c.get('user') as any;
+  const user = c.get('user')!;
   const { limit, cursor, cuisine, difficulty, max_minutes } = c.req.valid('query');
 
   const decoded = cursor ? decodeCursor(cursor) : null;
@@ -266,7 +266,7 @@ app.get('/trending', optionalAuth, async (c) => {
   }
 
   const db = getDb(c);
-  const user = c.get('user') as any;
+  const user = c.get('user')!;
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -316,7 +316,7 @@ app.get('/trending', optionalAuth, async (c) => {
 app.get('/user/:username', optionalAuth, zValidator('query', PaginationSchema), async (c) => {
   const db = getDb(c);
   const username = c.req.param('username');
-  const viewer = c.get('user') as any;
+  const viewer = c.get('user')!;
   const { limit, cursor } = c.req.valid('query');
 
   const [targetUser] = await db.select().from(users).where(eq(users.username, username)).limit(1);

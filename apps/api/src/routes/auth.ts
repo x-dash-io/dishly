@@ -58,7 +58,7 @@ export const authRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
    * Get current user profile with follow counts
    */
   .get('/me', requireAuth, async (c) => {
-    const user = c.get('user') as any;
+    const user = c.get('user')!;
     const db = getDb(c);
 
     // Count followers and following
@@ -81,7 +81,7 @@ export const authRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
    * Account Deletion
    */
   .delete('/account', requireAuth, async (c) => {
-    const user = c.get('user') as any;
+    const user = c.get('user')!;
     const clerkId = c.get('clerkId') as string;
     const db = getDb(c);
     const clerk = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });

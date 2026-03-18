@@ -29,7 +29,7 @@ export const verifyClerkToken: MiddlewareHandler<{ Bindings: CloudflareEnv, Vari
 
     c.set('clerkId', session.sub);
     await next();
-  } catch (err: any) {
+  } catch (err: unknown) {
     return c.json({ 
       error: 'Unauthorized', 
       detail: `${err?.message || 'Verification failed'} (Server Time: ${new Date().toISOString()})`,
@@ -69,7 +69,7 @@ export const requireAuth: MiddlewareHandler<{ Bindings: CloudflareEnv, Variables
     c.set('user', dbUser);
     c.set('clerkId', session.sub);
     await next();
-  } catch (err: any) {
+  } catch (err: unknown) {
     return c.json({ 
       error: 'Unauthorized', 
       detail: `${err?.message || 'Verification failed'} (Server Time: ${new Date().toISOString()})`,
