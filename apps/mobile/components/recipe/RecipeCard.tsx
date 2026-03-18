@@ -13,6 +13,8 @@ import { Avatar } from '../ui/Avatar';
 import { IconButton } from '../ui/IconButton';
 import { Button } from '../ui/Button';
 import { MetaPill } from './MetaPill';
+import { useFollowUser } from '../../hooks/useUserProfile';
+import { useAuth } from '@clerk/clerk-expo';
 
 interface RecipeCardProps {
   recipe: RecipeCardItem;
@@ -33,8 +35,13 @@ export function RecipeCard({
   onShare,
   currentUserId,
 }: RecipeCardProps) {
+  const { userId } = useAuth();
   const totalMinutes = recipe.prep_minutes + recipe.cook_minutes;
-  const isOwnRecipe = currentUserId === recipe.author.id;
+  const isOwnRecipe = (currentUserId || userId) === recipe.author.id;
+  const { mutate: toggleFollow, isPending: followPending } = useFollowUser(
+    recipe.author.id,
+    recipe.author.username,
+  );
 
   return (
     <TouchableOpacity 
@@ -77,10 +84,11 @@ export function RecipeCard({
           
           {!isOwnRecipe && (
             <Button 
-              label="Follow" 
-              variant="secondary" 
+              label={recipe.author.viewer?.following ? 'Following' : 'Follow'}
+              variant={recipe.author.viewer?.following ? 'ghost' : 'secondary'}
               size="sm" 
-              onPress={() => {}} // Handle follow
+              loading={followPending}
+              onPress={() => toggleFollow()}
             />
           )}
         </View>

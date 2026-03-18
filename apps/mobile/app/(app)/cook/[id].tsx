@@ -192,15 +192,30 @@ export default function CookModeScreen() {
             label="Share your dish" 
             variant="primary" 
             fullWidth
+            icon="share"
             style={styles.actionBtn}
-            onPress={() => Share.share({ url: `https://dishly.app/recipe/${id}`, title: 'I just made this!' })}
+            onPress={() => Share.share({ 
+              url: `https://dishly.app/recipe/${id}`, 
+              title: `I just made ${recipe.title}! 🍽️`,
+              message: `Check out this recipe on Dishly: https://dishly.app/recipe/${id}`,
+            })}
           />
           <Button 
             label="Rate this recipe" 
             variant="ghost" 
             fullWidth
+            icon="rating"
             style={styles.actionBtn}
-            onPress={() => {}} // Stub
+            onPress={() => Alert.alert(
+              'Rate this recipe',
+              'How did it turn out?',
+              [
+                { text: '⭐ Needs work', style: 'default', onPress: () => {} },
+                { text: '⭐⭐⭐ Pretty good', style: 'default', onPress: () => {} },
+                { text: '⭐⭐⭐⭐⭐ Amazing!', style: 'default', onPress: () => {} },
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            )}
           />
           <Button 
             label="Back to recipe" 

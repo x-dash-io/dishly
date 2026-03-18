@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   Animated, 
   ActivityIndicator, 
-  Share 
+  Share,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -22,7 +23,8 @@ import { useServingScaler } from '../../../hooks/useServingScaler';
 import { useLikeRecipe, useSaveRecipe } from '../../../hooks/useRecipeActions';
 import { IngredientRow } from '../../../components/recipe/IngredientRow';
 import { StepCard } from '../../../components/recipe/StepCard';
-import { CommentsPreview } from '../../../components/recipe/CommentsPreview';
+import { useFollowUser } from '../../../hooks/useUserProfile';
+import { useAuth } from '@clerk/clerk-expo';
 
 const HEADER_HEIGHT_EXPANDED = 300;
 const HEADER_HEIGHT_COLLAPSED = 90;
@@ -35,8 +37,14 @@ export default function RecipeDetailScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const { data: recipe, isLoading, isError, refetch } = useRecipe(id as string);
+  const { userId: clerkUserId } = useAuth();
   const { mutate: like } = useLikeRecipe(id as string);
   const { mutate: save } = useSaveRecipe(id as string);
+  const { mutate: toggleFollow, isPending: followPending } = useFollowUser(
+    recipe?.author?.id ?? '',
+    recipe?.author?.username,
+  );
+  const isOwnRecipe = clerkUserId && recipe?.author?.clerk_id === clerkUserId;
 
   const { servings, setServings, scaleQuantity } = useServingScaler(4);
 
@@ -149,7 +157,15 @@ export default function RecipeDetailScreen() {
                 <Text style={styles.authorFollowers}>{recipe.author.follower_count} followers</Text>
               </View>
             </TouchableOpacity>
-            <Button label="Follow" variant="ghost" size="sm" onPress={() => {}} />
+            {!isOwnRecipe && (
+              <Button
+                label={recipe.viewer?.following ? 'Following' : 'Follow'}
+                variant={recipe.viewer?.following ? 'ghost' : 'secondary'}
+                size="sm"
+                loading={followPending}
+                onPress={() => toggleFollow()}
+              />
+            )}
           </View>
 
           {/* Title and Badges */}
@@ -199,13 +215,25 @@ export default function RecipeDetailScreen() {
 
           {/* Ingredients */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ingredients</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Ingredients</Text>
+              <Text style={styles.sectionHint}>Tap any ingredient for substitutes</Text>
+            </View>
             {recipe.ingredients?.map((ing) => (
-              <IngredientRow 
-                key={ing.id ?? ing.name} 
-                ingredient={ing} 
-                scaledQuantity={ing.quantity ? scaleQuantity(ing.quantity) : ''} 
-              />
+              <TouchableOpacity
+                key={ing.id ?? ing.name}
+                activeOpacity={0.7}
+                onPress={() => Alert.alert(
+                  `Substitutes for ${ing.name}`,
+                  'AI ingredient substitution is coming in the next update.',
+                  [{ text: 'Got it' }]
+                )}
+              >
+                <IngredientRow 
+                  ingredient={ing} 
+                  scaledQuantity={ing.quantity ? scaleQuantity(ing.quantity) : ''} 
+                />
+              </TouchableOpacity>
             ))}
           </View>
           <View style={styles.metaDivider} />
@@ -500,11 +528,21 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 8,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: 16,
+  },
+  sectionHint: {
+    fontSize: 11,
+    color: COLORS.aiPurple,
+    fontWeight: '500',
   },
   nutritionGrid: {
     flexDirection: 'row',
