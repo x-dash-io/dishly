@@ -113,7 +113,21 @@ export interface FullRecipe extends Omit<RecipeCardItem, 'author'> {
   };
 }
 
-export interface UserProfile {
+export interface SubstitutionItem {
+  name: string;
+  ratio: string;
+  notes: string;
+  works_well: boolean;
+  dietary_tags?: string[];
+}
+
+export interface SubstitutionResult {
+  original_ingredient: string;
+  substitutes: SubstitutionItem[];
+  tip: string;
+}
+
+
   id: string;
   username: string;
   display_name: string;

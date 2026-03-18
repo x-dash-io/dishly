@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -7,7 +7,6 @@ import {
   Animated, 
   ActivityIndicator, 
   Share,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -23,7 +22,9 @@ import { useServingScaler } from '../../../hooks/useServingScaler';
 import { useLikeRecipe, useSaveRecipe } from '../../../hooks/useRecipeActions';
 import { IngredientRow } from '../../../components/recipe/IngredientRow';
 import { StepCard } from '../../../components/recipe/StepCard';
+import { SubstitutionSheet } from '../../../components/recipe/SubstitutionSheet';
 import { useFollowUser } from '../../../hooks/useUserProfile';
+import type { Ingredient } from '@dishly/types';
 
 const HEADER_HEIGHT_EXPANDED = 300;
 const HEADER_HEIGHT_COLLAPSED = 90;
@@ -47,6 +48,9 @@ export default function RecipeDetailScreen() {
   // when the recipe's author id matches the viewer's own profile data.
   // recipe.viewer exists only when authenticated — null means own recipe OR unauthenticated.
   const isOwnRecipe = !recipe?.viewer;
+
+  // Substitution sheet — null = closed, Ingredient = open for that ingredient
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
 
   const { servings, setServings, scaleQuantity } = useServingScaler(4);
 
@@ -219,23 +223,15 @@ export default function RecipeDetailScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Ingredients</Text>
-              <Text style={styles.sectionHint}>Tap any ingredient for substitutes</Text>
+              <Text style={styles.sectionHint}>★ Tap for substitutes</Text>
             </View>
             {recipe.ingredients?.map((ing) => (
-              <TouchableOpacity
+              <IngredientRow
                 key={ing.id ?? ing.name}
-                activeOpacity={0.7}
-                onPress={() => Alert.alert(
-                  `Substitutes for ${ing.name}`,
-                  'AI ingredient substitution is coming in the next update.',
-                  [{ text: 'Got it' }]
-                )}
-              >
-                <IngredientRow 
-                  ingredient={ing} 
-                  scaledQuantity={ing.quantity ? scaleQuantity(ing.quantity) : ''} 
-                />
-              </TouchableOpacity>
+                ingredient={ing}
+                scaledQuantity={ing.quantity ? scaleQuantity(ing.quantity) : ''}
+                onPress={() => setSelectedIngredient(ing)}
+              />
             ))}
           </View>
           <View style={styles.metaDivider} />
@@ -329,6 +325,13 @@ export default function RecipeDetailScreen() {
           onPress={() => router.push(`/cook/${recipe.id}`)}
         />
       </View>
+
+      {/* Substitution Sheet — rendered outside the scroll, full screen overlay */}
+      <SubstitutionSheet
+        recipeId={recipe.id}
+        ingredient={selectedIngredient}
+        onClose={() => setSelectedIngredient(null)}
+      />
     </View>
   );
 }

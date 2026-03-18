@@ -9,7 +9,7 @@ import { rateLimit } from '../middleware/rate-limit';
 import { getDb } from '../lib/db';
 import { getGemini, GEMINI_MODEL, urlToImagePart } from '../lib/gemini';
 import { streamText } from 'hono/streaming';
-import { CookQASchema } from '@dishly/validators';
+import { CookQASchema, SubstitutionSchema } from '@dishly/validators';
 
 export const aiRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variables }>()
 
@@ -757,6 +757,124 @@ Make it delicious and realistic.`;
       } catch (err: unknown) {
         const latencyMs = Date.now() - startTime;
         const message   = err instanceof Error ? err.message : 'AI_GENERATION_ERROR';
+        if (genId) {
+          await db.update(aiGenerations)
+            .set({ latencyMs, error: message })
+            .where(eq(aiGenerations.id, genId));
+        }
+        if (err instanceof SyntaxError) {
+          return c.json({ error: 'AI_PARSE_ERROR' }, 502);
+        }
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
+      }
+    }
+
+  /**
+   * POST /ai/substitutions
+   * Get AI-ranked ingredient substitutes for a recipe
+   */
+  .post(
+    '/substitutions',
+    requireAuth,
+    rateLimit('ai'),
+    zValidator('json', SubstitutionSchema),
+    async (c) => {
+      const currentUser = c.get('user')!;
+      const { recipe_id, ingredient_name } = c.req.valid('json');
+      const db = getDb(c);
+      const startTime = Date.now();
+
+      // 1. Fetch recipe context
+      const recipeRows = await db
+        .select({ recipe: recipes, ingredient: ingredientsDb })
+        .from(recipes)
+        .leftJoin(ingredientsDb, eq(recipes.id, ingredientsDb.recipeId))
+        .where(eq(recipes.id, recipe_id));
+
+      if (!recipeRows.length) {
+        return c.json({ error: 'Recipe not found' }, 404);
+      }
+
+      const recipe = recipeRows[0].recipe;
+      if (recipe.userId !== currentUser.id && recipe.visibility !== 'public') {
+        return c.json({ error: 'Recipe not accessible' }, 404);
+      }
+
+      const otherIngredients = recipeRows
+        .map(r => r.ingredient?.name)
+        .filter((n): n is string => !!n && n !== ingredient_name);
+
+      // 2. Log generation
+      const inserted = await db.insert(aiGenerations).values({
+        userId: currentUser.id,
+        inputType: 'substitution',
+        inputIngredients: [ingredient_name],
+        inputPrompt: `Substitutes for ${ingredient_name} in ${recipe.title}`,
+        modelVersion: GEMINI_MODEL,
+      }).returning({ id: aiGenerations.id });
+
+      const genId = inserted[0]?.id;
+
+      try {
+        const prompt = `You are an expert chef. A home cook is making "${recipe.title}" (${recipe.cuisine ?? 'unspecified'} cuisine) and needs substitutes for: ${ingredient_name}
+
+Other ingredients in the recipe: ${otherIngredients.slice(0, 10).join(', ')}
+
+Provide 3–4 substitutes. For each one consider:
+- Availability (prefer common supermarket items)
+- How well it works in this specific recipe and cuisine
+- Effect on taste, texture, and appearance
+
+Be practical and encouraging.`;
+
+        const gemini = getGemini(c.env);
+        const model = gemini.getGenerativeModel({
+          model: GEMINI_MODEL,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: SchemaType.OBJECT,
+              properties: {
+                original_ingredient: { type: SchemaType.STRING },
+                substitutes: {
+                  type: SchemaType.ARRAY,
+                  items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                      name:          { type: SchemaType.STRING },
+                      ratio:         { type: SchemaType.STRING },
+                      notes:         { type: SchemaType.STRING },
+                      works_well:    { type: SchemaType.BOOLEAN },
+                      dietary_tags:  { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                    },
+                    required: ['name', 'ratio', 'notes', 'works_well'],
+                  },
+                },
+                tip: { type: SchemaType.STRING },
+              },
+              required: ['original_ingredient', 'substitutes', 'tip'],
+            },
+          },
+        });
+
+        const result = await model.generateContent(prompt);
+        const parsed = JSON.parse(result.response.text());
+
+        const latencyMs = Date.now() - startTime;
+        const tokensUsed = result.response.usageMetadata?.totalTokenCount ?? 0;
+
+        if (genId) {
+          await db.update(aiGenerations)
+            .set({ tokensUsed, latencyMs })
+            .where(eq(aiGenerations.id, genId));
+        }
+
+        // Stateless — return directly, no DB persistence
+        return c.json(parsed);
+
+      } catch (err: unknown) {
+        const latencyMs = Date.now() - startTime;
+        const message = err instanceof Error ? err.message : 'AI_GENERATION_ERROR';
         if (genId) {
           await db.update(aiGenerations)
             .set({ latencyMs, error: message })

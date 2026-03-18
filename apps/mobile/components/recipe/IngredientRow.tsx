@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { COLORS } from '@/constants/colors';
+import { AppIcon } from '@/constants/icons';
 import type { Ingredient } from '@dishly/types';
 
 interface IngredientRowProps {
   ingredient: Ingredient;
   scaledQuantity: string;
+  /** When provided, the row is tappable and shows a forward chevron hint */
+  onPress?: () => void;
 }
 
-export function IngredientRow({ ingredient, scaledQuantity }: IngredientRowProps) {
-  return (
+export function IngredientRow({ ingredient, scaledQuantity, onPress }: IngredientRowProps) {
+  const inner = (
     <View style={styles.container}>
       <View style={styles.leftSide}>
         <View style={styles.bullet} />
@@ -29,9 +32,28 @@ export function IngredientRow({ ingredient, scaledQuantity }: IngredientRowProps
         {ingredient.unit ? (
           <Text style={styles.amount}> {ingredient.unit}</Text>
         ) : null}
+        {onPress && (
+          <View style={styles.chevron}>
+            <AppIcon name="forward" size={13} color={COLORS.textMuted} />
+          </View>
+        )}
       </View>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        android_ripple={{ color: COLORS.surfaceAlt }}
+        style={({ pressed }) => pressed ? styles.pressed : undefined}
+      >
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return inner;
 }
 
 const styles = StyleSheet.create({
@@ -43,11 +65,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  pressed: {
+    opacity: 0.65,
+  },
   leftSide: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingRight: 16,
+    paddingRight: 12,
   },
   bullet: {
     width: 6,
@@ -56,6 +81,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     marginTop: 8,
     marginRight: 12,
+    flexShrink: 0,
   },
   textContainer: {
     flex: 1,
@@ -72,11 +98,15 @@ const styles = StyleSheet.create({
   },
   rightSide: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
   },
   amount: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.textPrimary,
+  },
+  chevron: {
+    marginLeft: 6,
+    opacity: 0.6,
   },
 });
