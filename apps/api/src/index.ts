@@ -11,6 +11,7 @@ import { userRoutes } from './routes/users';
 import { aiRoutes } from './routes/ai';
 import { feedRoutes } from './routes/feed';
 import { uploadRoutes } from './routes/uploads';
+import { mealPlanRoutes } from './routes/meal-plans';
 import { createDb } from '@dishly/db';
 import { sendLikeNotifications } from './lib/jobs/send-like-notifications';
 
@@ -66,6 +67,7 @@ app.route('/users', userRoutes);
 app.route('/ai', aiRoutes);
 app.route('/feed', feedRoutes);
 app.route('/uploads', uploadRoutes);
+app.route('/meal-plans', mealPlanRoutes);
 
 // Named export for Cloudflare Workers — supports both fetch (HTTP) and scheduled (Cron)
 export default {
