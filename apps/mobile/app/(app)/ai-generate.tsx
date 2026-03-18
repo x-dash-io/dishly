@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
   View,
@@ -18,7 +19,6 @@ import { COLORS } from '../../constants/colors';
 import { AppIcon } from '../../constants/icons';
 import { Button } from '../../components/ui/Button';
 import { useApiClient } from '../../src/lib/api-client';
-import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
 
 type Mode = 'choose' | 'camera' | 'text' | 'review';
 
@@ -156,7 +156,7 @@ export default function AiGenerateScreen() {
   // ──────────────────────────────────────────────
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <FocusAwareStatusBar />
+      <StatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

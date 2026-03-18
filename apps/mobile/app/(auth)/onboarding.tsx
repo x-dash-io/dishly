@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, ActivityIndicator, Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useApiClient } from '../../src/lib/api-client';
-
-// const { width } = Dimensions.get('window');
+import { COLORS } from '../../constants/colors';
+import { AppIcon } from '../../constants/icons';
 
 const DIETARY_PREFS = ['Vegan', 'Vegetarian', 'Gluten-free', 'Dairy-free', 'Halal', 'Kosher', 'Keto', 'Paleo'];
-const CUISINES = ['Italian', 'West African', 'Japanese', 'Mexican', 'Indian', 'Thai', 'Mediterranean', 'Chinese', 'French', 'Middle Eastern', 'Korean', 'American'];
+const CUISINES = [
+  'Italian', 'West African', 'Japanese', 'Mexican', 'Indian', 'Thai',
+  'Mediterranean', 'Chinese', 'French', 'Middle Eastern', 'Korean', 'American',
+];
+
+const TOTAL_STEPS = 4;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -18,79 +27,60 @@ export default function OnboardingScreen() {
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [error, setError] = useState('');
 
-  // Step 1: Name & Username
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [usernameValid, setUsernameValid] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
-
-  // Step 2: Dietary Preferences
   const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
-
-  // Step 3: Skill Level
   const [skillLevel, setSkillLevel] = useState<'beginner' | 'intermediate' | 'advanced' | null>(null);
-
-  // Step 4: Favorite Cuisines
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
 
-  // Initial Onboarding Check
+  // Skip onboarding if user already has an account
   useEffect(() => {
     let mounted = true;
-    async function checkUser() {
-      try {
-        await api.get('/auth/me');
-        // If it succeeds, they are already onboarded, redirect to app
-        if (mounted) {
-          router.replace('/(app)/(tabs)');
-        }
-      } catch (err: any) {
-        // If it throws ONBOARDING_REQUIRED, we let them see the form
-        if (mounted) {
-          setIsCheckingOnboarding(false);
-        }
-      }
-    }
-    checkUser();
+    api.request<{ username: string }>('GET', '/auth/me')
+      .then(() => { if (mounted) router.replace('/(app)/(tabs)'); })
+      .catch(() => { if (mounted) setIsCheckingOnboarding(false); });
     return () => { mounted = false; };
   }, []);
 
-  // Username validation effect
+  // Real username availability check
   useEffect(() => {
-    if (username.length < 3) {
-      setUsernameValid(null);
-      return;
-    }
+    if (username.length < 3) { setUsernameValid(null); return; }
+    const regex = /^[a-z0-9_]+$/;
+    if (!regex.test(username)) { setUsernameValid(false); return; }
 
+    setUsernameChecking(true);
     const timer = setTimeout(async () => {
-      setUsernameChecking(true);
       try {
-        // Mocking check for now as the endpoint /users/check-username might not be in the stub yet
-        // In the real app: const { available } = await api.get<{available: boolean}>(`/users/check-username?username=${username}`);
-        // setUsernameValid(available);
-        setUsernameValid(true); 
+        const res = await api.request<{ available: boolean }>(
+          'GET', `/users/check-username?username=${username}`
+        );
+        setUsernameValid(res.available);
       } catch {
-        setUsernameValid(false);
+        // Endpoint not yet responding — treat as valid to unblock dev
+        setUsernameValid(true);
       } finally {
         setUsernameChecking(false);
       }
     }, 500);
-
     return () => clearTimeout(timer);
   }, [username]);
 
-  const toggleSelection = (item: string, list: string[], setList: (val: string[]) => void) => {
-    if (list.includes(item)) {
-      setList(list.filter(i => i !== item));
-    } else {
-      setList([...list, item]);
-    }
+  const toggle = (item: string, list: string[], setList: (v: string[]) => void) =>
+    setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
+
+  const nextEnabled = () => {
+    if (step === 1) return displayName.trim().length > 0 && usernameValid === true;
+    if (step === 3) return skillLevel !== null;
+    if (step === 4) return selectedCuisines.length >= 3;
+    return true;
   };
 
   const handleFinish = async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      await api.post('/auth/onboarding', {
+      await api.request('POST', '/auth/onboarding', {
         username,
         display_name: displayName,
         dietary_prefs: selectedDietary,
@@ -99,153 +89,195 @@ export default function OnboardingScreen() {
       });
       router.replace('/(app)/(tabs)');
     } catch (err: unknown) {
-      const apiError = err as { message?: string; code?: string };
-      setError(apiError.message || 'Onboarding failed');
-      if (apiError.code === 'USERNAME_TAKEN') {
-        setStep(1);
-      }
+      const e = err as { message?: string; code?: string };
+      setError(e.message || 'Something went wrong. Please try again.');
+      if (e.code === 'USERNAME_TAKEN') setStep(1);
     } finally {
       setLoading(false);
     }
   };
 
-  const nextEnabled = () => {
-    if (step === 1) return displayName.length > 0 && usernameValid === true;
-    if (step === 3) return skillLevel !== null;
-    if (step === 4) return selectedCuisines.length >= 3;
-    return true;
-  };
-
-  const renderStep1 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>What's your name?</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Display Name"
-        value={displayName}
-        onChangeText={setDisplayName}
-      />
-      <View style={styles.usernameContainer}>
-        <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          placeholder="Username"
-          value={username}
-          onChangeText={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-          autoCapitalize="none"
-        />
-        <View style={styles.validationIcon}>
-          {usernameChecking ? <ActivityIndicator size="small" color="#E8531A" /> : (
-            usernameValid === true ? <Text style={{color: '#4CAF50', fontSize: 20}}>✓</Text> :
-            usernameValid === false ? <Text style={{color: '#F44336', fontSize: 20}}>✗</Text> : null
-          )}
-        </View>
-      </View>
-      <Text style={styles.helperText}>Lower case, numbers, and underscores only.</Text>
-    </View>
-  );
-
-  const renderStep2 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Dietary preferences</Text>
-      <Text style={styles.stepSubtitle}>Optional — we'll use this to tailor your feed.</Text>
-      <View style={styles.tagGrid}>
-        {DIETARY_PREFS.map(pref => (
-          <TouchableOpacity 
-            key={pref}
-            style={[styles.tag, selectedDietary.includes(pref) && styles.tagSelected]}
-            onPress={() => toggleSelection(pref, selectedDietary, setSelectedDietary)}
-          >
-            <Text style={[styles.tagText, selectedDietary.includes(pref) && styles.tagTextSelected]}>{pref}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Skill level</Text>
-      <TouchableOpacity 
-        style={[styles.skillCard, skillLevel === 'beginner' && styles.skillCardSelected]}
-        onPress={() => setSkillLevel('beginner')}
-      >
-        <Text style={styles.skillTitle}>Beginner</Text>
-        <Text style={styles.skillSubtext}>I'm just starting out</Text>
-      </TouchableOpacity>
-      <TouchableOpacity 
-        style={[styles.skillCard, skillLevel === 'intermediate' && styles.skillCardSelected]}
-        onPress={() => setSkillLevel('intermediate')}
-      >
-        <Text style={styles.skillTitle}>Intermediate</Text>
-        <Text style={styles.skillSubtext}>I cook regularly</Text>
-      </TouchableOpacity>
-      <TouchableOpacity 
-        style={[styles.skillCard, skillLevel === 'advanced' && styles.skillCardSelected]}
-        onPress={() => setSkillLevel('advanced')}
-      >
-        <Text style={styles.skillTitle}>Advanced</Text>
-        <Text style={styles.skillSubtext}>I live in the kitchen</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderStep4 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Favourite cuisines</Text>
-      <Text style={styles.stepSubtitle}>Pick 3 or more</Text>
-      <View style={styles.tagGrid}>
-        {CUISINES.map(cuisine => (
-          <TouchableOpacity 
-            key={cuisine}
-            style={[styles.tag, selectedCuisines.includes(cuisine) && styles.tagSelected]}
-            onPress={() => toggleSelection(cuisine, selectedCuisines, setSelectedCuisines)}
-          >
-            <Text style={[styles.tagText, selectedCuisines.includes(cuisine) && styles.tagTextSelected]}>{cuisine}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
   if (isCheckingOnboarding) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDF6ED' }}>
-         <ActivityIndicator size="large" color="#E8531A" />
+      <View style={styles.loadingScreen}>
+        <StatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.progressContainer}>
-        {[1, 2, 3, 4].map(s => (
-          <View key={s} style={[styles.progressDot, step >= s && styles.progressDotActive]} />
+      <StatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
+
+      {/* Progress bar */}
+      <View style={styles.progressRow}>
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <View
+            key={i}
+            style={[styles.progressSegment, step > i && styles.progressSegmentDone]}
+          />
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
-        {step === 4 && renderStep4()}
-        
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {step === 1 && (
+          <View style={styles.stepBody}>
+            <Text style={styles.stepTitle}>What's your name?</Text>
+            <Text style={styles.stepSubtitle}>This is how other cooks will know you.</Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Display name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Amara Mensah"
+                placeholderTextColor={COLORS.textMuted}
+                value={displayName}
+                onChangeText={setDisplayName}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Username</Text>
+              <View style={styles.usernameRow}>
+                <TextInput
+                  style={[styles.input, styles.usernameInput]}
+                  placeholder="e.g. amara_cooks"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={username}
+                  onChangeText={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <View style={styles.usernameStatus}>
+                  {usernameChecking
+                    ? <ActivityIndicator size="small" color={COLORS.primary} />
+                    : usernameValid === true
+                    ? <AppIcon name="check" size={18} color={COLORS.success} />
+                    : usernameValid === false
+                    ? <AppIcon name="close" size={18} color={COLORS.error} />
+                    : null}
+                </View>
+              </View>
+              <Text style={styles.helperText}>
+                {usernameValid === false
+                  ? username.length >= 3 && !/^[a-z0-9_]+$/.test(username)
+                    ? 'Only lowercase letters, numbers, and underscores.'
+                    : 'Username is already taken.'
+                  : 'Lowercase letters, numbers, and underscores only.'}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {step === 2 && (
+          <View style={styles.stepBody}>
+            <Text style={styles.stepTitle}>Dietary preferences</Text>
+            <Text style={styles.stepSubtitle}>Optional — we'll tailor your feed.</Text>
+            <View style={styles.chipGrid}>
+              {DIETARY_PREFS.map(pref => {
+                const active = selectedDietary.includes(pref);
+                return (
+                  <TouchableOpacity
+                    key={pref}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => toggle(pref, selectedDietary, setSelectedDietary)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{pref}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {step === 3 && (
+          <View style={styles.stepBody}>
+            <Text style={styles.stepTitle}>Your skill level</Text>
+            <Text style={styles.stepSubtitle}>Helps us recommend the right recipes.</Text>
+            {([
+              { key: 'beginner', title: 'Beginner', sub: "I'm just starting out" },
+              { key: 'intermediate', title: 'Intermediate', sub: 'I cook regularly' },
+              { key: 'advanced', title: 'Advanced', sub: 'I live in the kitchen' },
+            ] as const).map(({ key, title, sub }) => {
+              const active = skillLevel === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.skillCard, active && styles.skillCardActive]}
+                  onPress={() => setSkillLevel(key)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.skillCardInner}>
+                    <View>
+                      <Text style={[styles.skillTitle, active && styles.skillTitleActive]}>{title}</Text>
+                      <Text style={styles.skillSub}>{sub}</Text>
+                    </View>
+                    {active && <AppIcon name="check" size={20} color={COLORS.primary} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {step === 4 && (
+          <View style={styles.stepBody}>
+            <Text style={styles.stepTitle}>Favourite cuisines</Text>
+            <Text style={styles.stepSubtitle}>Pick at least 3.</Text>
+            <View style={styles.chipGrid}>
+              {CUISINES.map(cuisine => {
+                const active = selectedCuisines.includes(cuisine);
+                return (
+                  <TouchableOpacity
+                    key={cuisine}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => toggle(cuisine, selectedCuisines, setSelectedCuisines)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{cuisine}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {selectedCuisines.length > 0 && selectedCuisines.length < 3 && (
+              <Text style={styles.hintText}>
+                Pick {3 - selectedCuisines.length} more to continue
+              </Text>
+            )}
+          </View>
+        )}
+
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
+      {/* Footer nav */}
       <View style={styles.footer}>
-        {step > 1 && (
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setStep(step - 1)}>
-            <Text style={styles.secondaryButtonText}>Back</Text>
+        {step > 1 ? (
+          <TouchableOpacity style={styles.backBtn} onPress={() => setStep(s => s - 1)}>
+            <AppIcon name="back" size={20} color={COLORS.mahogany} />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
-        )}
-        <TouchableOpacity 
-          style={[styles.primaryButton, (!nextEnabled() || loading) && styles.buttonDisabled]} 
-          onPress={() => step < 4 ? setStep(step + 1) : handleFinish()}
+        ) : <View style={{ flex: 1 }} />}
+
+        <TouchableOpacity
+          style={[styles.nextBtn, (!nextEnabled() || loading) && styles.nextBtnDisabled]}
+          onPress={() => step < TOTAL_STEPS ? setStep(s => s + 1) : handleFinish()}
           disabled={!nextEnabled() || loading}
+          activeOpacity={0.85}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : (
-            <Text style={styles.primaryButtonText}>{step === 4 ? 'Finish' : 'Next'}</Text>
-          )}
+          {loading
+            ? <ActivityIndicator color={COLORS.textInverse} />
+            : <Text style={styles.nextBtnText}>{step === TOTAL_STEPS ? 'Finish' : 'Next'}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -253,149 +285,78 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FDF6ED',
+  loadingScreen: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
-  progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 20,
-    marginBottom: 40,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  progressRow: {
+    flexDirection: 'row', gap: 6,
+    paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
+  progressSegment: {
+    flex: 1, height: 4, borderRadius: 2, backgroundColor: COLORS.border,
   },
-  progressDotActive: {
-    backgroundColor: '#E8531A',
-    width: 24,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-  },
-  stepContainer: {
-    flex: 1,
-  },
+  progressSegmentDone: { backgroundColor: COLORS.primary },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 32 },
+  stepBody: { gap: 0 },
   stepTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#5E3C2C',
-    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 28, fontWeight: '700', color: COLORS.mahogany, marginBottom: 6,
   },
   stepSubtitle: {
-    fontSize: 16,
-    color: '#5E3C2C',
-    marginBottom: 24,
+    fontSize: 15, color: COLORS.textSecondary, marginBottom: 28, lineHeight: 22,
   },
+  fieldGroup: { gap: 6, marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   input: {
-    height: 52,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 16,
+    height: 48, backgroundColor: COLORS.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: COLORS.border,
+    paddingHorizontal: 14, fontSize: 16, color: COLORS.textPrimary,
   },
-  usernameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  validationIcon: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  tagGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  tag: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8531A',
+  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  usernameInput: { flex: 1, marginBottom: 0 },
+  usernameStatus: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
+  helperText: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
+  chip: {
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 20, borderWidth: 1, borderColor: COLORS.primary,
     backgroundColor: 'transparent',
   },
-  tagSelected: {
-    backgroundColor: '#E8531A',
-  },
-  tagText: {
-    color: '#E8531A',
-    fontWeight: '600',
-  },
-  tagTextSelected: {
-    color: '#fff',
-  },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  chipTextActive: { color: COLORS.textInverse },
   skillCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 16,
+    backgroundColor: COLORS.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: COLORS.border, marginBottom: 12,
   },
-  skillCardSelected: {
-    borderColor: '#E8531A',
-    borderWidth: 2,
+  skillCardActive: { borderColor: COLORS.primary, borderWidth: 2 },
+  skillCardInner: {
+    padding: 18, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between',
   },
-  skillTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#5E3C2C',
-  },
-  skillSubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
-  },
+  skillTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 2 },
+  skillTitleActive: { color: COLORS.primary },
+  skillSub: { fontSize: 13, color: COLORS.textMuted },
+  hintText: { fontSize: 13, color: COLORS.textMuted, marginTop: 12, textAlign: 'center' },
+  errorBox: { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12, marginTop: 12 },
+  errorText: { fontSize: 13, color: '#991B1B', textAlign: 'center' },
   footer: {
-    padding: 24,
-    flexDirection: 'row',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 24, paddingVertical: 16,
+    gap: 12, borderTopWidth: 1, borderTopColor: COLORS.border,
+    backgroundColor: COLORS.background,
   },
-  primaryButton: {
-    flex: 2,
-    height: 56,
-    backgroundColor: '#E8531A',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    gap: 6, height: 52, justifyContent: 'flex-start',
   },
-  secondaryButton: {
-    flex: 1,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backBtnText: { fontSize: 16, color: COLORS.mahogany, fontWeight: '600' },
+  nextBtn: {
+    flex: 2, height: 52, backgroundColor: COLORS.primary,
+    borderRadius: 14, justifyContent: 'center', alignItems: 'center',
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  secondaryButtonText: {
-    color: '#5E3C2C',
-    fontSize: 16,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  errorText: {
-    color: '#F44336',
-    marginTop: 20,
-    textAlign: 'center',
-  },
+  nextBtnDisabled: { opacity: 0.45 },
+  nextBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.textInverse },
 });

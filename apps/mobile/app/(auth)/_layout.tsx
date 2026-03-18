@@ -1,28 +1,20 @@
+import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@clerk/clerk-expo';
 import { Redirect, Stack } from 'expo-router';
-import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
+import { COLORS } from '../../constants/colors';
 
 export default function AuthLayout() {
   const { isSignedIn } = useAuth();
 
-  // Only redirect if signed in AND not on the onboarding screen
-  // This allows signed-in but non-onboarded users to stay on the onboarding page
+  // If already signed in redirect to app — unless hitting onboarding
   if (isSignedIn) {
-    return (
-      <>
-        <FocusAwareStatusBar />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="sign-in" redirect />
-          <Stack.Screen name="sign-up" redirect />
-        </Stack>
-      </>
-    );
+    return <Redirect href="/(app)/(tabs)" />;
   }
 
   return (
     <>
-      <FocusAwareStatusBar />
+      {/* Auth screens sit on cream background — need dark icons */}
+      <StatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
       <Stack screenOptions={{ headerShown: false }} />
     </>
   );

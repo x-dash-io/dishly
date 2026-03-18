@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { 
   View, 
@@ -17,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApiClient } from '../../../../src/lib/api-client';
 import { COLORS } from '../../../../constants/colors';
 import { AppIcon } from '../../../../constants/icons';
-import { FocusAwareStatusBar } from '../../../../src/components/ui/FocusAwareStatusBar';
 import type { CommentsResponse, RecipeComment } from '../../../../components/recipe/CommentsPreview';
 
 export default function RecipeCommentsScreen() {
@@ -74,7 +74,7 @@ export default function RecipeCommentsScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <FocusAwareStatusBar style="light" />
+      <StatusBar style="light" translucent={false} />
       
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>

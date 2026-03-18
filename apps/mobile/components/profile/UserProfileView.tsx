@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -10,7 +11,6 @@ import { Badge } from '../ui/Badge';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { useUserProfile, useFollowUser, useUserRecipes, useUserSavedRecipes } from '../../hooks/useUserProfile';
-import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
 import type { RecipeCardItem } from '@dishly/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -180,7 +180,7 @@ export function UserProfileView({ username, isOwnProfile = false, showBackButton
         />
         {item.is_ai_generated && (
           <View style={styles.aiBadge}>
-            <AppIcon name="aiGenerate" size={10} color="#FFF" />
+            <AppIcon name="aiGenerate" size={10} color={COLORS.textInverse} />
           </View>
         )}
       </TouchableOpacity>
@@ -189,7 +189,7 @@ export function UserProfileView({ username, isOwnProfile = false, showBackButton
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar />
+      <StatusBar style="light" translucent={false} />
       {/* @ts-ignore */}
       <FlashList
         data={recipesOutput as any}

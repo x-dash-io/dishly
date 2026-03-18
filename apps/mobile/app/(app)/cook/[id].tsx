@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
@@ -22,7 +23,6 @@ import { AppIcon } from '../../../constants/icons';
 import { Button } from '../../../components/ui/Button';
 import { useCookTimer } from '../../../hooks/useCookTimer';
 import { useCookQA } from '../../../hooks/useCookQA';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 import type { FullRecipe, Step } from '@dishly/types';
 
 const { width } = Dimensions.get('window');
@@ -39,7 +39,7 @@ export default function CookModeScreen() {
   if (!recipe || !recipe.steps) {
     return (
       <View style={[styles.container, styles.center]}>
-        <FocusAwareStatusBar />
+        <StatusBar style="light" translucent={false} />
         <Text style={styles.errorText}>Recipe data not found. Please load recipe details first.</Text>
         <Button label="Go Back" variant="primary" onPress={() => router.back()} />
       </View>
@@ -171,7 +171,7 @@ export default function CookModeScreen() {
   if (isFinished) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <FocusAwareStatusBar />
+        <StatusBar style="light" translucent={false} />
         <Animated.View style={[styles.completionContainer, { 
           opacity: opacityAnim, 
           transform: [{ scale: scaleAnim }] 
@@ -216,7 +216,7 @@ export default function CookModeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
-      <FocusAwareStatusBar />
+      <StatusBar style="light" translucent={false} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>

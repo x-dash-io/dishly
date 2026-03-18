@@ -1,3 +1,4 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -19,7 +20,6 @@ import { useApiClient } from '../../src/lib/api-client';
 import { COLORS } from '../../constants/colors';
 import { Button } from '../../components/ui/Button';
 import { AppIcon } from '../../constants/icons';
-import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
 import type { UserProfile } from '@dishly/types';
 
 const DIETARY_PREFS = ['Vegan', 'Vegetarian', 'Gluten-free', 'Dairy-free', 'Halal', 'Kosher', 'Keto', 'Paleo'];
@@ -150,7 +150,7 @@ export default function EditProfileScreen() {
   if (meLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <FocusAwareStatusBar />
+        <StatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
         <ActivityIndicator color={COLORS.primary} size="large" />
       </View>
     );
@@ -158,7 +158,7 @@ export default function EditProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <FocusAwareStatusBar />
+      <StatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>

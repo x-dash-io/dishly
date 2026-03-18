@@ -1,10 +1,10 @@
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { UserProfileView } from '../../../components/profile/UserProfileView';
 import { useApiClient } from '../../../src/lib/api-client';
 import { COLORS } from '../../../constants/colors';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 
 export default function ProfileTab() {
   const api = useApiClient();
@@ -18,7 +18,7 @@ export default function ProfileTab() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <FocusAwareStatusBar />
+        <StatusBar style="light" translucent={false} />
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
@@ -27,7 +27,7 @@ export default function ProfileTab() {
   if (!me?.username) {
     return (
       <View style={styles.center}>
-        <FocusAwareStatusBar />
+        <StatusBar style="light" translucent={false} />
         <Text style={styles.errorText}>Profile not found</Text>
       </View>
     );
@@ -35,7 +35,7 @@ export default function ProfileTab() {
 
   return (
     <View style={{ flex: 1 }}>
-      <FocusAwareStatusBar />
+      <StatusBar style="light" translucent={false} />
       <UserProfileView username={me.username} isOwnProfile={true} showBackButton={false} />
     </View>
   );
