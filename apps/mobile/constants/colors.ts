@@ -10,6 +10,12 @@ export const COLORS = {
   surface:        '#FFFFFF',  // Cards, sheets, inputs
   surfaceAlt:     '#F5F0EB',  // Alternate surface (skeleton loaders, tags)
 
+  // Tints (light semantic backgrounds — used in badges, error boxes, callouts)
+  primaryLight:   '#FEF0EA',  // Primary tint — orange badge bg
+  secondaryLight: '#EAF3DE',  // Secondary tint — green badge bg
+  errorLight:     '#FEE2E2',  // Error tint — error message backgrounds
+  errorText:      '#991B1B',  // Error text on errorLight
+
   // Text
   textPrimary:    '#1A1A1A',
   textSecondary:  '#666666',

@@ -176,8 +176,8 @@ const styles = StyleSheet.create({
   strengthTrack: { flex: 1, height: 4, backgroundColor: COLORS.border, borderRadius: 2 },
   strengthFill: { height: 4, borderRadius: 2 },
   strengthLabel: { fontSize: 12, fontWeight: '600', minWidth: 48, textAlign: 'right' },
-  errorBox: { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12 },
-  errorText: { fontSize: 13, color: '#991B1B', textAlign: 'center' },
+  errorBox: { backgroundColor: COLORS.errorLight, borderRadius: 10, padding: 12 },
+  errorText: { fontSize: 13, color: COLORS.errorText, textAlign: 'center' },
   primaryBtn: {
     height: 52, backgroundColor: COLORS.primary,
     borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 4,

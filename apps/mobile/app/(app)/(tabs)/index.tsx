@@ -211,6 +211,7 @@ function Tabs({
 }
 
 function EmptyState({ activeTab }: { activeTab: FeedType }) {
+  const router = useRouter();
   if (activeTab !== 'following') return null;
 
   return (
@@ -218,10 +219,10 @@ function EmptyState({ activeTab }: { activeTab: FeedType }) {
       <AppIcon name="chef" size={64} color={COLORS.border} />
       <Text style={styles.emptyTitle}>Nobody you follow has posted yet</Text>
       <Text style={styles.emptySubtitle}>Explore recipes to find creators to follow</Text>
-      <Button 
-        variant="primary" 
-        label="Explore recipes" 
-        onPress={() => {}} // Navigate to explore tab
+      <Button
+        variant="primary"
+        label="Explore recipes"
+        onPress={() => router.push('/(app)/(tabs)/explore')}
         style={styles.emptyButton}
       />
     </View>

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -100,7 +100,11 @@ export default function MealPlannerScreen() {
                 key={meal}
                 style={styles.mealSlot}
                 activeOpacity={0.7}
-                onPress={() => {}}
+                onPress={() => Alert.alert(
+                  'Add a recipe',
+                  'Recipe picker is coming in the next update. You\'ll be able to search and schedule any recipe here.',
+                  [{ text: 'Got it' }]
+                )}
               >
                 <View style={styles.mealSlotLeft}>
                   <Text style={styles.mealLabel}>{meal}</Text>

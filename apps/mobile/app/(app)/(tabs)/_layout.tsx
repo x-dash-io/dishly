@@ -88,7 +88,7 @@ export default function TabsLayout() {
         <Pressable style={styles.backdrop} onPress={() => setShowCreateModal(false)}>
           <Pressable
             style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
-            onPress={() => {}}
+            onPress={() => { /* stops backdrop tap from propagating through the sheet */ }}
           >
             {/* Handle */}
             <View style={styles.handle} />

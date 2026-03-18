@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator, FlatList } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -150,32 +149,31 @@ export function UserProfileView({ username, isOwnProfile = false, showBackButton
     </View>
   );
 
-  const recipesOutput = activeTab === 'published' 
-    ? publishedData?.pages.flatMap(p => p.recipes) || []
-    : savedData?.pages.flatMap(p => p.items) || [];
+  const recipesOutput: RecipeCardItem[] = activeTab === 'published'
+    ? (publishedData?.pages.flatMap(p => p.recipes) ?? [])
+    : (savedData?.pages.flatMap(p => p.items) ?? []);
 
   const isLoadingFeed = activeTab === 'published' ? publishedLoading : savedLoading;
 
-  const renderGridItem = ({ item, index }: { item: RecipeCardItem, index: number }) => {
-    // Add margin right if not the last in the row
+  const renderGridItem = ({ item, index }: { item: RecipeCardItem; index: number }) => {
     const isFirstColumn = index % 3 === 0;
     const isLastColumn = (index + 1) % 3 === 0;
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => router.push(`/recipe/${item.id}`)}
         style={[
-          styles.gridItem, 
-          { 
+          styles.gridItem,
+          {
             marginLeft: isFirstColumn ? 0 : GRID_SPACING,
             marginRight: isLastColumn ? 0 : GRID_SPACING,
-          }
+          },
         ]}
       >
-        <Image 
-          source={{ uri: item.cover_image_url || item.hero_image_url || undefined }} 
-          style={styles.gridImage} 
+        <Image
+          source={{ uri: item.cover_image_url || item.hero_image_url || undefined }}
+          style={styles.gridImage}
           contentFit="cover"
         />
         {item.is_ai_generated && (
@@ -190,14 +188,11 @@ export function UserProfileView({ username, isOwnProfile = false, showBackButton
   return (
     <View style={styles.container}>
       <StatusBar style="light" translucent={false} />
-      {/* @ts-ignore */}
-      <FlashList
-        data={recipesOutput as any}
+      <FlatList<RecipeCardItem>
+        data={recipesOutput}
         renderItem={renderGridItem}
         keyExtractor={(item) => item.id}
         numColumns={3}
-        // @ts-ignore
-        estimatedItemSize={ITEM_SIZE}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           isLoadingFeed ? (

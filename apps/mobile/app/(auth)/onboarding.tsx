@@ -340,8 +340,8 @@ const styles = StyleSheet.create({
   skillTitleActive: { color: COLORS.primary },
   skillSub: { fontSize: 13, color: COLORS.textMuted },
   hintText: { fontSize: 13, color: COLORS.textMuted, marginTop: 12, textAlign: 'center' },
-  errorBox: { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12, marginTop: 12 },
-  errorText: { fontSize: 13, color: '#991B1B', textAlign: 'center' },
+  errorBox: { backgroundColor: COLORS.errorLight, borderRadius: 10, padding: 12, marginTop: 12 },
+  errorText: { fontSize: 13, color: COLORS.errorText, textAlign: 'center' },
   footer: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 24, paddingVertical: 16,

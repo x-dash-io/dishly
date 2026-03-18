@@ -32,19 +32,19 @@ export function Badge({ label, variant, size = 'md' }: BadgeProps) {
 
 const VARIANT_STYLES: Record<string, { container: ViewStyle; text: TextStyle }> = {
   primary: {
-    container: { backgroundColor: '#FEF0EA' },
+    container: { backgroundColor: COLORS.primaryLight },
     text: { color: '#C4430F' },
   },
   secondary: {
-    container: { backgroundColor: '#EAF3DE' },
+    container: { backgroundColor: COLORS.secondaryLight },
     text: { color: '#2E5B0A' },
   },
   ai: {
-    container: { backgroundColor: '#EDE9FE' },
+    container: { backgroundColor: COLORS.aiPurpleLight },
     text: { color: COLORS.aiPurple },
   },
   success: {
-    container: { backgroundColor: '#EAF3DE' },
+    container: { backgroundColor: COLORS.secondaryLight },
     text: { color: '#2E5B0A' },
   },
   muted: {

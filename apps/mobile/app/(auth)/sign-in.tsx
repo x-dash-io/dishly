@@ -185,13 +185,13 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   errorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: COLORS.errorLight,
     borderRadius: 10,
     padding: 12,
   },
   errorText: {
     fontSize: 13,
-    color: '#991B1B',
+    color: COLORS.errorText,
     textAlign: 'center',
   },
   primaryBtn: {
