@@ -18,7 +18,7 @@ import {
   sql,
   isNull,
 } from '@dishly/db';
-import { aliasedTable } from 'drizzle-orm/pg-core';
+import { alias } from 'drizzle-orm/pg-core';
 import { 
   CreateRecipeSchema, 
   UpdateRecipeSchema, 
@@ -334,8 +334,8 @@ app.get('/:id/comments', optionalAuth, zValidator('query', PaginationSchema), as
   const recipeId = c.req.param('id');
   const { limit, cursor } = c.req.valid('query');
 
-  const authorTable = aliasedTable(users, 'comment_author');
-  const replyAuthorTable = aliasedTable(users, 'reply_author');
+  const authorTable = alias(users, 'comment_author');
+  const replyAuthorTable = alias(users, 'reply_author');
 
   const topLevelComments = await db.select({
     id: comments.id,
