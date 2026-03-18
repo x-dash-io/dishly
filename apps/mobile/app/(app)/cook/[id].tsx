@@ -305,57 +305,74 @@ export default function CookModeScreen() {
 
           {/* AI Q&A Panel */}
           <View style={styles.aiPanelContainer}>
-            {/* Collapsed state */}
+            {/* Collapsed state — only show when no messages for this step */}
             {!isAIExpanded && currentStepMessages.length === 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.aiCollapsedPanel}
                 onPress={() => setIsAIExpanded(true)}
+                activeOpacity={0.8}
               >
-                <AppIcon name="aiGenerate" size={16} color={COLORS.aiPurple} />
+                <Text style={styles.aiStar}>★</Text>
                 <Text style={styles.aiCollapsedText}>Ask anything about this step</Text>
+                <AppIcon name="forward" size={14} color={COLORS.aiPurple} />
               </TouchableOpacity>
             )}
 
             {/* Expanded state */}
             {(isAIExpanded || currentStepMessages.length > 0) && (
               <View style={styles.aiExpandedPanel}>
+                {/* Header row with collapse button */}
+                <View style={styles.aiExpandedHeader}>
+                  <Text style={styles.aiStar}>★</Text>
+                  <Text style={styles.aiExpandedTitle}>AI Chef</Text>
+                  <TouchableOpacity
+                    onPress={() => setIsAIExpanded(false)}
+                    style={styles.aiCollapseBtn}
+                  >
+                    <AppIcon name="collapse" size={16} color={COLORS.aiPurple} />
+                  </TouchableOpacity>
+                </View>
+
                 {/* Previous Q&As for this step */}
-                {currentStepMessages.map((message) => (
-                  <View key={message.id} style={styles.qaMessage}>
-                    <Text style={styles.questionText}>Q: {message.question}</Text>
-                    <Text style={styles.answerText}>
-                      A: {message.answer}
-                      {message.isStreaming && showCursor && '▊'}
-                    </Text>
+                {currentStepMessages.length > 0 && (
+                  <View style={styles.qaList}>
+                    {currentStepMessages.map((message) => (
+                      <View key={message.id} style={styles.qaMessage}>
+                        <Text style={styles.questionText}>Q: {message.question}</Text>
+                        <Text style={styles.answerText}>
+                          {message.answer
+                            ? `A: ${message.answer}${message.isStreaming && showCursor ? '▊' : ''}`
+                            : message.isStreaming
+                            ? '▊'
+                            : ''}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
+                )}
 
                 {/* Input area */}
                 <View style={styles.aiInputContainer}>
-                  <AppIcon name="aiGenerate" size={16} color={COLORS.aiPurple} />
                   <TextInput
                     style={styles.aiInput}
-                    placeholder="Ask something…"
+                    placeholder="Ask something about this step…"
                     placeholderTextColor={COLORS.textMuted}
                     value={aiInputText}
                     onChangeText={setAiInputText}
-                    onSubmitEditing={() => {
-                      handleAIAsk(aiInputText);
-                    }}
+                    onSubmitEditing={() => handleAIAsk(aiInputText)}
                     editable={!isLoading}
-                    multiline={false}
                     returnKeyType="send"
+                    multiline={false}
                   />
-                  <TouchableOpacity 
-                    onPress={() => {
-                      handleAIAsk(aiInputText);
-                    }}
+                  <TouchableOpacity
+                    onPress={() => handleAIAsk(aiInputText)}
                     disabled={isLoading || !aiInputText.trim()}
+                    style={styles.aiSendBtn}
                   >
-                    <AppIcon 
-                      name="send" 
-                      size={16} 
-                      color={isLoading || !aiInputText.trim() ? COLORS.textMuted : COLORS.aiPurple} 
+                    <AppIcon
+                      name="send"
+                      size={16}
+                      color={isLoading || !aiInputText.trim() ? COLORS.textMuted : COLORS.aiPurple}
                     />
                   </TouchableOpacity>
                 </View>
@@ -559,8 +576,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.aiPurple,
     gap: 8,
   },
+  aiStar: {
+    fontSize: 16,
+    color: COLORS.aiPurple,
+    fontWeight: '700',
+  },
   aiCollapsedText: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 14,
     color: COLORS.aiPurple,
     fontWeight: '500',
   },
@@ -569,29 +592,50 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 0.5,
     borderColor: COLORS.aiPurple,
-    padding: 16,
-    gap: 12,
+    padding: 14,
+    gap: 10,
+  },
+  aiExpandedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COLORS.aiPurple + '40',
+  },
+  aiExpandedTitle: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.aiPurple,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  aiCollapseBtn: {
+    padding: 2,
+  },
+  qaList: {
+    gap: 10,
   },
   qaMessage: {
-    marginBottom: 12,
+    gap: 4,
   },
   questionText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.mahogany,
-    marginBottom: 4,
   },
   answerText: {
     fontSize: 14,
     color: COLORS.textPrimary,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   aiInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: 20,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 8,
     borderWidth: 1,
@@ -599,9 +643,11 @@ const styles = StyleSheet.create({
   },
   aiInput: {
     flex: 1,
-    marginHorizontal: 12,
-    fontSize: 15,
-    color: COLORS.aiPurple,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  aiSendBtn: {
+    padding: 4,
   },
   bottomBar: {
     flexDirection: 'row',

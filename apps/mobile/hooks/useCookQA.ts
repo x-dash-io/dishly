@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
+import { env } from '../src/config/env';
 
 export interface QAMessage {
   id: string;
@@ -13,53 +14,52 @@ export function useCookQA(recipeId: string) {
   const [messages, setMessages] = useState<QAMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { getToken } = useAuth();
-  const tokenRef = useRef<string | null>(null);
 
-  // Get token once and cache it
+  // Refresh the token once per hook mount — Clerk tokens are short-lived
+  const tokenRef = useRef<string | null>(null);
   useEffect(() => {
-    getToken().then(token => {
-      tokenRef.current = token;
+    let cancelled = false;
+    getToken().then(t => {
+      if (!cancelled) tokenRef.current = t;
     });
+    return () => { cancelled = true; };
   }, [getToken]);
 
   const ask = useCallback(async (question: string, stepIndex: number) => {
-    const messageId = crypto.randomUUID();
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8787';
+    if (!question.trim() || isLoading) return;
 
-    // Add a streaming placeholder immediately
+    const messageId = crypto.randomUUID();
+
+    // Refresh the token right before use — avoids stale token errors
+    const token = await getToken();
+    tokenRef.current = token;
+
     setMessages(prev => [...prev, {
       id: messageId,
-      question,
+      question: question.trim(),
       answer: '',
       stepIndex,
-      isStreaming: true
+      isStreaming: true,
     }]);
     setIsLoading(true);
 
     try {
-      // Fetch the streaming endpoint
-      const response = await fetch(`${apiUrl}/ai/cook-qa`, {
+      const response = await fetch(`${env.EXPO_PUBLIC_API_URL}/ai/cook-qa`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenRef.current}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           recipe_id: recipeId,
           current_step_index: stepIndex,
-          question
+          question: question.trim(),
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('AI request failed');
-      }
+      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+      if (!response.body) throw new Error('No response body');
 
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      // Read the stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
@@ -68,47 +68,32 @@ export function useCookQA(recipeId: string) {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        
-        // Update the message with accumulated text on every chunk
         setMessages(prev => prev.map(m =>
-          m.id === messageId 
-            ? { ...m, answer: accumulated, isStreaming: true } 
-            : m
+          m.id === messageId ? { ...m, answer: accumulated, isStreaming: true } : m
         ));
       }
 
-      // Mark streaming complete
       setMessages(prev => prev.map(m =>
-        m.id === messageId 
-          ? { ...m, answer: accumulated, isStreaming: false } 
-          : m
+        m.id === messageId ? { ...m, answer: accumulated, isStreaming: false } : m
       ));
 
-    } catch (err) {
-      console.error('Cook QA error:', err);
+    } catch {
       setMessages(prev => prev.map(m =>
         m.id === messageId
-          ? { ...m, answer: 'Sorry, I couldn\'t answer that. Try again.', isStreaming: false }
+          ? { ...m, answer: "Sorry, I couldn't answer that. Try again.", isStreaming: false }
           : m
       ));
     } finally {
       setIsLoading(false);
     }
-  }, [recipeId]);
+  }, [recipeId, isLoading, getToken]);
 
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
+  const getMessagesForStep = useCallback((stepIndex: number) =>
+    messages.filter(m => m.stepIndex === stepIndex),
+    [messages]
+  );
 
-  const getMessagesForStep = useCallback((stepIndex: number) => {
-    return messages.filter(m => m.stepIndex === stepIndex);
-  }, [messages]);
+  const clearMessages = useCallback(() => setMessages([]), []);
 
-  return {
-    messages,
-    isLoading,
-    ask,
-    clearMessages,
-    getMessagesForStep
-  };
+  return { messages, isLoading, ask, getMessagesForStep, clearMessages };
 }

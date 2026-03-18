@@ -101,15 +101,16 @@ Order by confidence descending.`;
           model: GEMINI_MODEL
         });
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         const latencyMs = Date.now() - startTime;
+        const message = err instanceof Error ? err.message : 'AI_PARSE_ERROR';
         if (genId) {
-          await db.update(aiGenerations).set({ latencyMs, error: err.message || 'AI_PARSE_ERROR' }).where(eq(aiGenerations.id, genId));
+          await db.update(aiGenerations).set({ latencyMs, error: message }).where(eq(aiGenerations.id, genId));
         }
         if (err instanceof SyntaxError) {
           return c.json({ error: 'AI_PARSE_ERROR' }, 502);
         }
-        return c.json({ error: 'AI_GENERATION_FAILED', message: err.message }, 502);
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
       }
     }
   )
@@ -166,7 +167,7 @@ ${body.ingredients.map(i => `- ${i}`).join('\n')}`;
                 title: { type: SchemaType.STRING },
                 description: { type: SchemaType.STRING },
                 cuisine: { type: SchemaType.STRING },
-                difficulty: { type: SchemaType.STRING, format: 'enum', enum: ['easy', 'medium', 'hard'] } as any,
+                difficulty: { type: SchemaType.STRING } as object,
                 prep_minutes: { type: SchemaType.NUMBER },
                 cook_minutes: { type: SchemaType.NUMBER },
                 servings: { type: SchemaType.NUMBER },
@@ -234,7 +235,7 @@ ${body.ingredients.map(i => `- ${i}`).join('\n')}`;
             title: parsed.title,
             description: parsed.description,
             cuisine: parsed.cuisine,
-            difficulty: parsed.difficulty as any,
+            difficulty: (parsed.difficulty as 'easy' | 'medium' | 'hard') ?? 'medium',
             prepMinutes: parsed.prep_minutes,
             cookMinutes: parsed.cook_minutes,
             servings: parsed.servings,
@@ -301,15 +302,16 @@ ${body.ingredients.map(i => `- ${i}`).join('\n')}`;
           tags: parsed.tags || []
         }, 201);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         const latencyMs = Date.now() - startTime;
+        const message = err instanceof Error ? err.message : 'AI_GENERATION_ERROR';
         if (genId) {
-          await db.update(aiGenerations).set({ latencyMs, error: err.message || 'AI_GENERATION_ERROR' }).where(eq(aiGenerations.id, genId));
+          await db.update(aiGenerations).set({ latencyMs, error: message }).where(eq(aiGenerations.id, genId));
         }
         if (err instanceof SyntaxError) {
           return c.json({ error: 'AI_PARSE_ERROR' }, 502);
         }
-        return c.json({ error: 'AI_GENERATION_FAILED', message: err.message }, 502);
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
       }
     }
   )
@@ -363,11 +365,12 @@ Input: ${text}`;
         const parsed = JSON.parse(result.response.text());
 
         return c.json({ ingredients: parsed.ingredients || [] });
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'AI_GENERATION_ERROR';
         if (err instanceof SyntaxError) {
           return c.json({ error: 'AI_PARSE_ERROR' }, 502);
         }
-        return c.json({ error: 'AI_GENERATION_FAILED', message: err.message }, 502);
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
       }
     }
   )
@@ -450,20 +453,9 @@ Answer their question in the context of this recipe and this step.`;
           { text: `User question: ${question}` }
         ]);
 
-        // 4. Return a streaming HTTP response
-        return streamText(c, async (stream) => {
-          try {
-            for await (const chunk of result.stream) {
-              const text = chunk.text();
-              if (text) await stream.write(text);
-            }
-          } catch (streamErr) {
-            await stream.write('[AI assistant temporarily unavailable]');
-          }
-        });
-
-        // 5. Log to ai_generations asynchronously (fire-and-forget after streaming starts)
-        (async () => {
+        // 5. Fire-and-forget audit log — must be started BEFORE the return
+        const logStartTime = startTime;
+        ;(async () => {
           try {
             await db.insert(aiGenerations).values({
               userId: currentUser.id,
@@ -471,15 +463,28 @@ Answer their question in the context of this recipe and this step.`;
               inputIngredients: [recipe_id],
               inputPrompt: question,
               modelVersion: GEMINI_MODEL,
-              latencyMs: Date.now() - startTime,
+              latencyMs: Date.now() - logStartTime,
             });
-          } catch (logErr) {
-            // Ignore logging errors
+          } catch {
+            // Ignore logging errors — never affect the stream
           }
         })();
 
-      } catch (err: any) {
-        return c.json({ error: 'AI_GENERATION_FAILED', message: err.message }, 502);
+        // 4. Return a streaming HTTP response
+        return streamText(c, async (stream) => {
+          try {
+            for await (const chunk of result.stream) {
+              const text = chunk.text();
+              if (text) await stream.write(text);
+            }
+          } catch {
+            await stream.write('[AI assistant temporarily unavailable]');
+          }
+        });
+
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
       }
     }
   );
