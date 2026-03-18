@@ -11,7 +11,7 @@ interface IngredientRowProps {
   onPress?: () => void;
 }
 
-export function IngredientRow({ ingredient, scaledQuantity, onPress }: IngredientRowProps) {
+function IngredientRowComponent({ ingredient, scaledQuantity, onPress }: IngredientRowProps) {
   const inner = (
     <View style={styles.container}>
       <View style={styles.leftSide}>
@@ -110,3 +110,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+// Wrapped in React.memo for FlashList / scroll performance
+export const IngredientRow = React.memo(IngredientRowComponent);

@@ -8,7 +8,7 @@ interface BadgeProps {
   size?: 'sm' | 'md';
 }
 
-export function Badge({ label, variant, size = 'md' }: BadgeProps) {
+function BadgeComponent({ label, variant, size = 'md' }: BadgeProps) {
   const containerStyle = [
     styles.container,
     VARIANT_STYLES[variant].container,
@@ -82,3 +82,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+// Wrapped in React.memo for FlashList / scroll performance
+export const Badge = React.memo(BadgeComponent);

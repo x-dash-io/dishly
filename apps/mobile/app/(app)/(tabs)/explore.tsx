@@ -9,7 +9,8 @@ import {
   Share,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, ViewToken } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/colors';
@@ -72,6 +73,21 @@ export default function ExploreScreen() {
   } = useTrendingFeed();
 
   const currentData = isSearching ? searchData?.recipes : trendingData?.recipes;
+
+  // Prefetch images 2 cards ahead of last visible
+  const handleViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (!viewableItems.length || !currentData) return;
+      const lastVisible = Math.max(...viewableItems.map(v => v.index ?? 0));
+      [currentData[lastVisible + 1], currentData[lastVisible + 2]].forEach(item => {
+        if (!item) return;
+        if (item.hero_image_url) Image.prefetch(item.hero_image_url);
+        if (item.cover_image_url) Image.prefetch(item.cover_image_url);
+      });
+    },
+    [currentData]
+  );
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 });
   const isLoading = isSearching ? isSearchLoading : isTrendingLoading;
 
   const handleClearSearch = () => {
@@ -179,9 +195,10 @@ export default function ExploreScreen() {
           <FlashList<RecipeCardItem>
             data={currentData}
             renderItem={renderItem}
-            // @ts-ignore - FlashList types can be finicky
-            estimatedItemSize={420}
+            estimatedItemSize={445}
             keyExtractor={(item) => item.id}
+            onViewableItemsChanged={handleViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig.current}
             contentContainerStyle={styles.listPadding}
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
             ListHeaderComponent={

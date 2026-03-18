@@ -127,7 +127,7 @@ app.get('/:id', optionalAuth, async (c) => {
   // Viewer state (liked/saved) is always user-specific — fetched live, never cached.
   const staticData = await withCache(
     redis,
-    `recipe:static:${id}`,
+    `dishly:recipe:${id}`,
     300,
     async () => {
       const [recipeIngredients, recipeSteps, recipeNutrition, [author]] = await Promise.all([
@@ -230,7 +230,7 @@ app.patch('/:id', requireAuth, zValidator('json', UpdateRecipeSchema), async (c)
     });
 
     // Invalidate cached static data so the next GET reflects the update
-    c.executionCtx.waitUntil(invalidateCache(getRedis(c.env), `recipe:static:${id}`));
+    c.executionCtx.waitUntil(invalidateCache(getRedis(c.env), `dishly:recipe:${id}`));
 
     return c.json({ success: true });
   } catch (error) {
@@ -270,7 +270,7 @@ app.post('/:id/publish', requireAuth, zValidator('json', PublishRecipeSchema), a
   // Notify followers — fire-and-forget, never block the response
   c.executionCtx.waitUntil((async () => {
     // Invalidate cached static data (status changed to published)
-    await invalidateCache(getRedis(c.env), `recipe:static:${id}`);
+    await invalidateCache(getRedis(c.env), `dishly:recipe:${id}`);
     try {
       const followerRows = await db
         .select({ userId: follows.followerId })

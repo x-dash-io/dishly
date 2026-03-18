@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -7,9 +7,9 @@ import {
   RefreshControl,
   Share,
 } from 'react-native';
-import { useAuth } from '@clerk/clerk-expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, ViewToken } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
@@ -22,8 +22,6 @@ import { usePrefetchRecipe } from '../../../hooks/usePrefetch';
 import type { RecipeCardItem } from '@dishly/types';
 
 // Memoized RecipeCard for performance
-const MemoizedRecipeCard = React.memo(RecipeCard);
-
 export default function HomeFeedScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<FeedType>('forYou');
@@ -43,28 +41,40 @@ export default function HomeFeedScreen() {
     [data]
   );
 
-  const handleLike = useCallback((recipeId: string) => {
-    // We'll use a local hook call inside the component if needed, 
-    // but the user prompt says useLikeRecipe(recipe.id).mutate()
-    // However, hooks cannot be called inside callbacks. 
-    // I will use a separate component or a predefined mutation.
+  // Stable handlers — prevent RecipeCard re-renders on parent state changes
+  const handlePress = useCallback((id: string) => router.push(`/recipe/${id}`), [router]);
+  const handleAuthorPress = useCallback((username: string) => router.push(`/user/${username}`), [router]);
+  const handleShare = useCallback((recipe: RecipeCardItem) => {
+    Share.share({ url: `https://dishly.app/recipe/${recipe.id}`, title: recipe.title });
   }, []);
+
+  // Image prefetch — prefetch 2 cards ahead of the last visible item
+  const handleViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (!viewableItems.length) return;
+      const lastVisible = Math.max(...viewableItems.map(v => v.index ?? 0));
+      [flatData[lastVisible + 1], flatData[lastVisible + 2]].forEach(item => {
+        if (!item) return;
+        if (item.hero_image_url) Image.prefetch(item.hero_image_url);
+        if (item.cover_image_url) Image.prefetch(item.cover_image_url);
+      });
+    },
+    [flatData]
+  );
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 });
 
   // For simplicity and to follow instructions, I'll define the mutation at the top level of the screen
   // but it needs to be per-recipe or generic.
   // Actually, the best way in React Query is to have the mutation hook return the mutate function.
   
-  const renderItem = ({ item }: { item: RecipeCardItem }) => (
+  const renderItem = useCallback(({ item }: { item: RecipeCardItem }) => (
     <RecipeCardItemWrapper 
       recipe={item} 
-      onPress={() => router.push(`/recipe/${item.id}`)}
-      onAuthorPress={(userId) => router.push(`/user/${item.author.username}`)}
-      onShare={() => Share.share({ 
-        url: `https://dishly.app/recipe/${item.id}`, 
-        title: item.title 
-      })}
+      onPress={() => handlePress(item.id)}
+      onAuthorPress={() => handleAuthorPress(item.author.username)}
+      onShare={() => handleShare(item)}
     />
-  );
+  ), [handlePress, handleAuthorPress, handleShare]);
 
   if (isLoading) {
     return (
@@ -113,8 +123,7 @@ export default function HomeFeedScreen() {
       <FlashList<RecipeCardItem>
         data={flatData}
         renderItem={renderItem}
-        // @ts-ignore - FlashList types can be finicky in some environments
-        estimatedItemSize={420}
+        estimatedItemSize={445}
         keyExtractor={(item) => item.id}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
@@ -122,6 +131,8 @@ export default function HomeFeedScreen() {
           }
         }}
         onEndReachedThreshold={0.3}
+        onViewableItemsChanged={handleViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig.current}
         refreshControl={
           <RefreshControl 
             refreshing={isLoading} 
@@ -155,7 +166,7 @@ function RecipeCardItemWrapper({
   const prefetch = usePrefetchRecipe();
 
   return (
-    <MemoizedRecipeCard
+    <RecipeCard
       recipe={recipe}
       onPress={onPress}
       onLongPress={() => prefetch(recipe.id)}

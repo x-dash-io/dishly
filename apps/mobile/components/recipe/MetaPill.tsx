@@ -9,7 +9,7 @@ interface MetaPillProps {
   iconColor?: string;
 }
 
-export function MetaPill({ icon, label, iconColor }: MetaPillProps) {
+function MetaPillComponent({ icon, label, iconColor }: MetaPillProps) {
   return (
     <View style={styles.container}>
       <AppIcon 
@@ -35,3 +35,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 });
+
+// Wrapped in React.memo for FlashList / scroll performance
+export const MetaPill = React.memo(MetaPillComponent);

@@ -12,7 +12,7 @@ interface StepCardProps {
   index: number;
 }
 
-export function StepCard({ recipeId, step, index }: StepCardProps) {
+function StepCardComponent({ recipeId, step, index }: StepCardProps) {
   const router = useRouter();
 
   const handleStartTimer = () => {
@@ -124,3 +124,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 });
+
+// Wrapped in React.memo for FlashList / scroll performance
+export const StepCard = React.memo(StepCardComponent);

@@ -27,7 +27,7 @@ interface RecipeCardProps {
   currentUserId?: string;
 }
 
-export function RecipeCard({
+function RecipeCardComponent({
   recipe,
   onPress,
   onLongPress,
@@ -208,3 +208,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 });
+
+// Wrapped in React.memo for FlashList / scroll performance
+export const RecipeCard = React.memo(RecipeCardComponent);

@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { Skeleton } from '../ui/Skeleton';
 
-export function RecipeCardSkeleton() {
+function RecipeCardSkeletonComponent() {
   return (
     <View style={styles.container}>
       {/* Image Skeleton */}
@@ -102,3 +102,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 });
+
+// Wrapped in React.memo for FlashList / scroll performance
+export const RecipeCardSkeleton = React.memo(RecipeCardSkeletonComponent);

@@ -99,7 +99,7 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
     // Viewer's follow state is always fetched live — it changes on every follow/unfollow
     const profile = await withCache(
       redis,
-      `user:profile:${username}`,
+      `dishly:user:${username}`,
       180,
       async () => {
         const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
@@ -195,8 +195,8 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
     c.executionCtx.waitUntil(
       invalidateCache(
         getRedis(c.env),
-        `user:profile:${currentUser.username}`,
-        `user:profile:${body.username ?? currentUser.username}`
+        `dishly:user:${currentUser.username}`,
+        `dishly:user:${body.username ?? currentUser.username}`
       )
     );
 
@@ -242,7 +242,7 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
         .where(and(eq(follows.followerId, currentUser.id), eq(follows.followingId, targetUserId)));
       // Invalidate target's cached follower count
       c.executionCtx.waitUntil(
-        invalidateCache(getRedis(c.env), `user:profile:${targetUser.username}`)
+        invalidateCache(getRedis(c.env), `dishly:user:${targetUser.username}`)
       );
       return c.json({ following: false });
     } else {
@@ -250,7 +250,7 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
       await db.insert(follows).values({ followerId: currentUser.id, followingId: targetUserId });
       // Invalidate target's cached follower count
       c.executionCtx.waitUntil(
-        invalidateCache(getRedis(c.env), `user:profile:${targetUser.username}`)
+        invalidateCache(getRedis(c.env), `dishly:user:${targetUser.username}`)
       );
       return c.json({ following: true });
     }
