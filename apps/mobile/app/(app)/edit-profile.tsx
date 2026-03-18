@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-// @ts-ignore
 import { Image } from 'expo-image';
 import { useApiClient } from '../../src/lib/api-client';
 import { COLORS } from '../../constants/colors';
@@ -86,7 +85,7 @@ export default function EditProfileScreen() {
   }, [username, me]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: (payload: any) => api.request('PATCH', '/users/me', payload),
+    mutationFn: (payload: Record<string, unknown>) => api.request('PATCH', '/users/me', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       // Invalidate the public profile view for this user
@@ -98,7 +97,7 @@ export default function EditProfileScreen() {
       }
       Alert.alert('Success', 'Profile updated!', [{ text: 'OK', onPress: () => router.back() }]);
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       Alert.alert('Error', err?.message || 'Failed to update profile');
     }
   });

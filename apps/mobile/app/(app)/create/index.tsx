@@ -140,7 +140,7 @@ export default function CreateStep1InfoScreen() {
                   <TouchableOpacity 
                     key={diff.val}
                     style={[styles.diffCard, isActive && styles.diffCardActive]}
-                    onPress={() => setField('difficulty', diff.val as any)}
+                    onPress={() => setField('difficulty', diff.val)}
                   >
                     <Text style={[styles.diffLabel, isActive && styles.diffLabelActive]}>{diff.label}</Text>
                     <Text style={[styles.diffSub, isActive && styles.diffSubActive]}>{diff.sub}</Text>

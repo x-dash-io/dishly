@@ -102,7 +102,7 @@ export function CommentsPreview({ recipeId }: { recipeId: string }) {
         <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
       ) : (
         <View style={styles.list}>
-          {data?.comments.map((comment: any) => (
+          {data?.comments.map((comment: RecipeComment) => (
             <View key={comment.id} style={styles.commentRow}>
               {comment.user.avatar_url ? (
                 <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
