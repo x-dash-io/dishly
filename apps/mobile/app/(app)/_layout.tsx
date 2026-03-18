@@ -18,7 +18,7 @@ export default function AppLayout() {
 
   return (
     <>
-      <FocusAwareStatusBar style="light" />
+      <FocusAwareStatusBar style="dark" />
       <Slot />
     </>
   );

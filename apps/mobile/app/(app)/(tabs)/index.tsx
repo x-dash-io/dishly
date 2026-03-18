@@ -12,6 +12,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '@clerk/clerk-expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../../../constants/colors';
@@ -86,6 +87,7 @@ export default function HomeFeedScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
+        <FocusAwareStatusBar style="light" />
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <Header onCopyJWT={handleCopyJWT} />
           <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -102,6 +104,7 @@ export default function HomeFeedScreen() {
   if (isError) {
     return (
       <View style={styles.container}>
+        <FocusAwareStatusBar style="light" />
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <Header onCopyJWT={handleCopyJWT} />
         </SafeAreaView>
@@ -120,6 +123,7 @@ export default function HomeFeedScreen() {
 
   return (
     <View style={styles.container}>
+      <FocusAwareStatusBar style="light" />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <Header onCopyJWT={handleCopyJWT} />
         <Tabs activeTab={activeTab} onTabChange={setActiveTab} />

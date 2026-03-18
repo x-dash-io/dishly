@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
+import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 import { RecipeCard } from '../../../components/recipe/RecipeCard';
 import { RecipeCardSkeleton } from '../../../components/recipe/RecipeCardSkeleton';
 import { Button } from '../../../components/ui/Button';
@@ -103,6 +104,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
+      <FocusAwareStatusBar style="dark" />
       <View style={styles.stickyHeader}>
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <View style={styles.searchContainer}>

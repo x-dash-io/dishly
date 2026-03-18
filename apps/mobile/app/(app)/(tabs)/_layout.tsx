@@ -8,7 +8,6 @@ import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatus
 export default function TabsLayout() {
   return (
     <>
-      <FocusAwareStatusBar style="light" />
       <Tabs
         screenOptions={{
         headerShown: false,

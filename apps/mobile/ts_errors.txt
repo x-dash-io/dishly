@@ -1,0 +1,21 @@
+app/(app)/recipe/[id].tsx(15,24): error TS2307: Cannot find module '../../../../constants/colors' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(16,25): error TS2307: Cannot find module '../../../../constants/icons' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(17,24): error TS2307: Cannot find module '../../../../components/ui/Button' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(18,27): error TS2307: Cannot find module '../../../../hooks/useRecipe' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(19,34): error TS2307: Cannot find module '../../../../hooks/useServingScaler' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(20,46): error TS2307: Cannot find module '../../../../hooks/useRecipeActions' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(21,31): error TS2307: Cannot find module '../../../../components/recipe/IngredientRow' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(22,26): error TS2307: Cannot find module '../../../../components/recipe/StepCard' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(23,33): error TS2307: Cannot find module '../../../../components/recipe/CommentsPreview' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(24,37): error TS2307: Cannot find module '../../../../src/components/ui/FocusAwareStatusBar' or its corresponding type declarations.
+app/(app)/recipe/[id].tsx(194,39): error TS7006: Parameter 'ing' implicitly has an 'any' type.
+app/(app)/recipe/[id].tsx(207,33): error TS7006: Parameter 'step' implicitly has an 'any' type.
+app/(app)/recipe/[id].tsx(207,39): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+app/(app)/recipe/[id]/comments.tsx(95,13): error TS2322: Type '{ data: RecipeComment[]; renderItem: ({ item }: { item: RecipeComment; }) => Element; estimatedItemSize: number; keyExtractor: (item: RecipeComment) => string; contentContainerStyle: { ...; }; ItemSeparatorComponent: () => Element; ListEmptyComponent: Element; }' is not assignable to type 'IntrinsicAttributes & FlashListProps<RecipeComment> & { ref?: Ref<FlashListRef<RecipeComment>> | undefined; }'.
+  Property 'estimatedItemSize' does not exist on type 'IntrinsicAttributes & FlashListProps<RecipeComment> & { ref?: Ref<FlashListRef<RecipeComment>> | undefined; }'.
+components/recipe/CommentsPreview.tsx(6,30): error TS2307: Cannot find module '../../../src/lib/api-client' or its corresponding type declarations.
+components/recipe/CommentsPreview.tsx(7,24): error TS2307: Cannot find module '../../../constants/colors' or its corresponding type declarations.
+components/recipe/CommentsPreview.tsx(105,32): error TS7006: Parameter 'comment' implicitly has an 'any' type.
+components/recipe/IngredientRow.tsx(3,24): error TS2307: Cannot find module '../../../constants/colors' or its corresponding type declarations.
+components/recipe/StepCard.tsx(5,24): error TS2307: Cannot find module '../../../constants/colors' or its corresponding type declarations.
+components/recipe/StepCard.tsx(6,25): error TS2307: Cannot find module '../../../constants/icons' or its corresponding type declarations.

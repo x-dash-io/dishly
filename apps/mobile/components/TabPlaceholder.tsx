@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { FocusAwareStatusBar } from '../src/components/ui/FocusAwareStatusBar';
 
 export default function TabPlaceholder({ name }: { name: string }) {
   return (
     <View style={styles.container}>
+      <FocusAwareStatusBar style="dark" />
       <Text style={styles.text}>{name} Screen</Text>
       <Text style={styles.subtext}>Coming Soon...</Text>
     </View>

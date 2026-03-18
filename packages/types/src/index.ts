@@ -96,3 +96,19 @@ export interface RecipeCardItem {
     saved: boolean;
   } | null;
 }
+
+export type Step = RecipeStep;
+export type Nutrition = NutritionInfo;
+
+export interface FullRecipe extends Omit<RecipeCardItem, 'author'> {
+  ingredients: Ingredient[];
+  steps: Step[];
+  nutrition: Nutrition | null;
+  author: {
+    id: string;
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+    follower_count: number;
+  };
+}
