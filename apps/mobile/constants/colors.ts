@@ -11,10 +11,12 @@ export const COLORS = {
   surfaceAlt:     '#F5F0EB',  // Alternate surface (skeleton loaders, tags)
 
   // Tints (light semantic backgrounds — used in badges, error boxes, callouts)
-  primaryLight:   '#FEF0EA',  // Primary tint — orange badge bg
-  secondaryLight: '#EAF3DE',  // Secondary tint — green badge bg
-  errorLight:     '#FEE2E2',  // Error tint — error message backgrounds
-  errorText:      '#991B1B',  // Error text on errorLight
+  primaryLight:      '#FEF0EA',  // Primary tint — orange badge bg
+  primaryLightText:  '#C4430F',  // Text on primaryLight
+  secondaryLight:    '#EAF3DE',  // Secondary tint — green badge bg
+  secondaryLightText:'#2E5B0A',  // Text on secondaryLight
+  errorLight:        '#FEE2E2',  // Error tint — error message backgrounds
+  errorText:         '#991B1B',  // Error text on errorLight
 
   // Text
   textPrimary:    '#1A1A1A',
