@@ -4,8 +4,8 @@
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
+		"dev": "wrangler dev --ip 0.0.0.0",
+		"start": "wrangler dev --ip 0.0.0.0",
 		"test": "vitest",
 		"cf-typegen": "wrangler types",
 		"typecheck": "tsc --noEmit"
@@ -27,7 +27,7 @@
 		"@dishly/validators": "workspace:*",
 		"@google/generative-ai": "^0.24.1",
 		"@hono/zod-validator": "^0.7.6",
-		"@neondatabase/serverless": "^1.0.2",
+		"@neondatabase/serverless": "^0.10.4",
 		"@upstash/ratelimit": "^2.0.8",
 		"@upstash/redis": "^1.37.0",
 		"drizzle-orm": "^0.39.3",

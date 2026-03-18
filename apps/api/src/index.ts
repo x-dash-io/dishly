@@ -18,8 +18,12 @@ const app = new Hono<{ Bindings: CloudflareEnv, Variables: Variables }>();
 app.use('*', logger());
 app.use('*', secureHeaders());
 app.use('*', cors({ 
-  origin: ['http://localhost:8081', 'https://dishly.app'], 
-  credentials: true 
+  origin: '*', 
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Clerk-SDK-Language', 'X-Clerk-SDK-Version'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 600,
+  credentials: false 
 }));
 
 app.use('*', async (c, next) => {

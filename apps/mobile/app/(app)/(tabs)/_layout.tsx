@@ -3,11 +3,14 @@ import { Tabs } from 'expo-router';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
+import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
+    <>
+      <FocusAwareStatusBar style="light" />
+      <Tabs
+        screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: COLORS.primary,
@@ -62,6 +65,7 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
 

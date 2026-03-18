@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { tokenCache } from '../src/lib/token-cache';
 import { queryClient } from '../src/lib/query-client';
+import { StatusBar } from 'expo-status-bar';
 import { env } from '../src/config/env';
 
 export default function RootLayout() {

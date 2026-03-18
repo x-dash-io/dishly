@@ -7,7 +7,7 @@ import {
   RefreshControl,
   Share,
   Alert,
-  Platform,
+  ScrollView,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '@clerk/clerk-expo';
@@ -86,27 +86,34 @@ export default function HomeFeedScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Header onCopyJWT={handleCopyJWT} />
-        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
-        <View style={styles.listPadding}>
-          {[1, 2, 3, 4].map((i) => (
+        <SafeAreaView edges={['top']} style={styles.safeArea}>
+          <Header onCopyJWT={handleCopyJWT} />
+          <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+        </SafeAreaView>
+        <ScrollView contentContainerStyle={styles.listPadding} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3].map((i) => (
             <RecipeCardSkeleton key={i} />
           ))}
-        </View>
+        </ScrollView>
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <Text style={styles.errorText}>Failed to load feed</Text>
-        <Button 
-          label="Retry" 
-          variant="ghost" 
-          onPress={() => refetch()} 
-          style={styles.retryButton}
-        />
+      <View style={styles.container}>
+        <SafeAreaView edges={['top']} style={styles.safeArea}>
+          <Header onCopyJWT={handleCopyJWT} />
+        </SafeAreaView>
+        <View style={[styles.flex1, styles.center]}>
+          <Text style={styles.errorText}>Failed to load feed</Text>
+          <Button 
+            label="Retry" 
+            variant="ghost" 
+            onPress={() => refetch()} 
+            style={styles.retryButton}
+          />
+        </View>
       </View>
     );
   }
@@ -177,7 +184,7 @@ function Header({ onCopyJWT }: { onCopyJWT: () => void }) {
     <View style={styles.header}>
       <View style={styles.wordmark}>
         <Text style={styles.wordmarkText}>
-          dish<Text style={{ color: COLORS.primary }}>l</Text>y
+          Dish<Text style={{ color: COLORS.primary }}>l</Text>y
         </Text>
       </View>
       <View style={styles.headerActions}>
@@ -309,6 +316,9 @@ const styles = StyleSheet.create({
   },
   listPadding: {
     padding: 16,
+  },
+  flex1: {
+    flex: 1,
   },
   center: {
     justifyContent: 'center',

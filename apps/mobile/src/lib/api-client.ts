@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/clerk-expo';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8787';
 
@@ -17,6 +17,7 @@ export class ApiError extends Error {
 export function useApiClient() {
   const { getToken, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   async function request<T>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
@@ -39,13 +40,21 @@ export function useApiClient() {
       body: body ? JSON.stringify(body) : undefined,
     });
 
+    const data = await response.json() as { error?: string; detail?: string; code?: string };
+
     if (response.status === 401) {
+      console.log(`API: 401 Unauthorized - signing out and redirecting. Detail: ${data.detail}`);
       await signOut();
       router.replace('/(auth)/sign-in');
-      throw new ApiError('Unauthorized', 401);
+      throw new ApiError(data.error || 'Unauthorized', 401);
     }
 
-    const data = await response.json() as { error?: string; code?: string };
+    if (response.status === 403) {
+      console.log('API: 403 Forbidden - potential onboarding required');
+      if (pathname !== '/onboarding') {
+        router.replace('/(auth)/onboarding');
+      }
+    }
 
     if (!response.ok) {
       throw new ApiError(data.error || 'Request failed', response.status, data.code);

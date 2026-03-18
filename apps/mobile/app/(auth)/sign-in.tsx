@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useSignIn, useOAuth } from '@clerk/clerk-expo';
+import { useSignIn } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: 'oauth_google' });
-  const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: 'oauth_apple' });
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -40,16 +38,6 @@ export default function SignInScreen() {
     }
   };
 
-  const onOAuthPress = async (startFlow: () => Promise<{ createdSessionId?: string | null; setActive?: (args: { session: string | null }) => Promise<void> }>) => {
-    try {
-      const { createdSessionId, setActive: setOAuthActive } = await startFlow();
-      if (createdSessionId && setOAuthActive) {
-        await setOAuthActive({ session: createdSessionId });
-      }
-    } catch (err) {
-      console.error('OAuth error:', err);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -58,30 +46,11 @@ export default function SignInScreen() {
         style={styles.inner}
       >
         <View style={styles.header}>
-          <Text style={styles.logo}>Dishly<Text style={{color: '#E8531A'}}>l</Text>y</Text>
+          <Text style={styles.logo}>Dish<Text style={{color: '#E8531A'}}>l</Text>y</Text>
           <Text style={styles.tagline}>every dish tells a story.</Text>
         </View>
 
         <View style={styles.form}>
-          <TouchableOpacity 
-            style={[styles.oauthButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' }]}
-            onPress={() => onOAuthPress(startGoogleFlow)}
-          >
-            <Text style={styles.oauthText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.oauthButton, { backgroundColor: '#000' }]}
-            onPress={() => onOAuthPress(startAppleFlow)}
-          >
-            <Text style={[styles.oauthText, { color: '#fff' }]}>Continue with Apple</Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.line} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.line} />
-          </View>
 
           <TextInput
             style={styles.input}

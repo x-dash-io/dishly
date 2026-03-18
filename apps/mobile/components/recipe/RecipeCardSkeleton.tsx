@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -51,15 +51,26 @@ export function RecipeCardSkeleton() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    backgroundColor: 'white',
+    borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    // Add subtle shadow for "Rich" feel
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   image: {
     aspectRatio: 16 / 9,
+    backgroundColor: COLORS.surfaceAlt,
   },
   content: {
     padding: 16,
