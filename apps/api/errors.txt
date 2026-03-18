@@ -1,0 +1,11 @@
+src/routes/ai.ts(3,10): error TS2724: '"@hono/zod-validator"' has no exported member named 'zodValidator'. Did you mean 'zValidator'?
+src/routes/ai.ts(23,60): error TS2345: Argument of type '"json"' is not assignable to parameter of type 'never'.
+src/routes/ai.ts(31,23): error TS2339: Property 'length' does not exist on type 'never'.
+src/routes/ai.ts(31,83): error TS2339: Property 'join' does not exist on type 'never'.
+src/routes/ai.ts(39,50): error TS2345: Argument of type '{ contents: { role: string; parts: { text: string; }[]; }[]; generationConfig: { responseSchema: { type: SchemaType; properties: { title: { type: SchemaType; }; description: { type: SchemaType; }; ... 7 more ...; nutrition: { ...; }; }; required: string[]; }; ... 10 more ...; logprobs?: number; }; }' is not assignable to parameter of type 'string | GenerateContentRequest | (string | Part)[]'.
+  The types of 'generationConfig.responseSchema' are incompatible between these types.
+    Type '{ type: SchemaType; properties: { title: { type: SchemaType; }; description: { type: SchemaType; }; cuisine: { type: SchemaType; }; difficulty: { ...; }; ... 5 more ...; nutrition: { ...; }; }; required: string[]; }' is not assignable to type 'Schema | undefined'.
+      Type '{ type: SchemaType; properties: { title: { type: SchemaType; }; description: { type: SchemaType; }; cuisine: { type: SchemaType; }; difficulty: { ...; }; ... 5 more ...; nutrition: { ...; }; }; required: string[]; }' is not assignable to type 'SimpleStringSchema | EnumStringSchema | NumberSchema | IntegerSchema | BooleanSchema | ArraySchema | ObjectSchema'.
+        Type '{ type: SchemaType; properties: { title: { type: SchemaType; }; description: { type: SchemaType; }; cuisine: { type: SchemaType; }; difficulty: { ...; }; ... 5 more ...; nutrition: { ...; }; }; required: string[]; }' is not assignable to type 'ObjectSchema'.
+          Types of property 'type' are incompatible.
+            Type 'SchemaType' is not assignable to type 'SchemaType.OBJECT'.

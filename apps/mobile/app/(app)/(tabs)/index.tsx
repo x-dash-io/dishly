@@ -6,7 +6,11 @@ import {
   TouchableOpacity, 
   RefreshControl,
   Share,
+  Alert,
+  Platform,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { useAuth } from '@clerk/clerk-expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
@@ -25,6 +29,21 @@ const MemoizedRecipeCard = React.memo(RecipeCard);
 export default function HomeFeedScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<FeedType>('forYou');
+  const { getToken } = useAuth();
+
+  const handleCopyJWT = async () => {
+    try {
+      const token = await getToken();
+      if (token) {
+        await Clipboard.setStringAsync(token);
+        Alert.alert('Success', 'JWT copied to clipboard');
+      } else {
+        Alert.alert('Error', 'Could not get JWT');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to copy JWT');
+    }
+  };
 
   const {
     data,
@@ -67,7 +86,7 @@ export default function HomeFeedScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Header />
+        <Header onCopyJWT={handleCopyJWT} />
         <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
         <View style={styles.listPadding}>
           {[1, 2, 3, 4].map((i) => (
@@ -95,7 +114,7 @@ export default function HomeFeedScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <Header />
+        <Header onCopyJWT={handleCopyJWT} />
         <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
       </SafeAreaView>
 
@@ -153,7 +172,7 @@ function RecipeCardItemWrapper({
   );
 }
 
-function Header() {
+function Header({ onCopyJWT }: { onCopyJWT: () => void }) {
   return (
     <View style={styles.header}>
       <View style={styles.wordmark}>
@@ -161,9 +180,16 @@ function Header() {
           dish<Text style={{ color: COLORS.primary }}>l</Text>y
         </Text>
       </View>
-      <TouchableOpacity style={styles.searchIcon}>
-        <AppIcon name="search" size={22} color="white" />
-      </TouchableOpacity>
+      <View style={styles.headerActions}>
+        {__DEV__ && (
+          <TouchableOpacity onPress={onCopyJWT} style={styles.debugBtn}>
+            <AppIcon name="check" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.searchIcon} onPress={() => {}}>
+          <AppIcon name="search" size={22} color="white" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -246,6 +272,16 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     padding: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  debugBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
   },
   tabStrip: {
     flexDirection: 'row',
