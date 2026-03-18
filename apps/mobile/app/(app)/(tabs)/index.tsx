@@ -6,13 +6,9 @@ import {
   TouchableOpacity, 
   RefreshControl,
   Share,
-  Alert,
-  ScrollView,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '@clerk/clerk-expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../../../constants/colors';
@@ -30,21 +26,6 @@ const MemoizedRecipeCard = React.memo(RecipeCard);
 export default function HomeFeedScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<FeedType>('forYou');
-  const { getToken } = useAuth();
-
-  const handleCopyJWT = async () => {
-    try {
-      const token = await getToken();
-      if (token) {
-        await Clipboard.setStringAsync(token);
-        Alert.alert('Success', 'JWT copied to clipboard');
-      } else {
-        Alert.alert('Error', 'Could not get JWT');
-      }
-    } catch (err) {
-      Alert.alert('Error', 'Failed to copy JWT');
-    }
-  };
 
   const {
     data,
@@ -87,16 +68,17 @@ export default function HomeFeedScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <FocusAwareStatusBar />
         <SafeAreaView edges={['top']} style={styles.safeArea}>
-          <Header onCopyJWT={handleCopyJWT} />
-          <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <Header />
+          <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
         </SafeAreaView>
-        <ScrollView contentContainerStyle={styles.listPadding} showsVerticalScrollIndicator={false}>
+        <View style={styles.listPadding}>
           {[1, 2, 3].map((i) => (
-            <RecipeCardSkeleton key={i} />
+            <View key={i} style={{ marginBottom: 12 }}>
+              <RecipeCardSkeleton />
+            </View>
           ))}
-        </ScrollView>
+        </View>
       </View>
     );
   }
@@ -104,9 +86,8 @@ export default function HomeFeedScreen() {
   if (isError) {
     return (
       <View style={styles.container}>
-        <FocusAwareStatusBar />
         <SafeAreaView edges={['top']} style={styles.safeArea}>
-          <Header onCopyJWT={handleCopyJWT} />
+          <Header />
         </SafeAreaView>
         <View style={[styles.flex1, styles.center]}>
           <Text style={styles.errorText}>Failed to load feed</Text>
@@ -123,10 +104,9 @@ export default function HomeFeedScreen() {
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <Header onCopyJWT={handleCopyJWT} />
-        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <Header />
+        <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
       </SafeAreaView>
 
       <FlashList<RecipeCardItem>
@@ -183,24 +163,16 @@ function RecipeCardItemWrapper({
   );
 }
 
-function Header({ onCopyJWT }: { onCopyJWT: () => void }) {
+function Header() {
+  const router = useRouter();
   return (
     <View style={styles.header}>
-      <View style={styles.wordmark}>
-        <Text style={styles.wordmarkText}>
-          Dish<Text style={{ color: COLORS.primary }}>l</Text>y
-        </Text>
-      </View>
-      <View style={styles.headerActions}>
-        {__DEV__ && (
-          <TouchableOpacity onPress={onCopyJWT} style={styles.debugBtn}>
-            <AppIcon name="check" size={18} color={COLORS.primary} />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity style={styles.searchIcon} onPress={() => {}}>
-          <AppIcon name="search" size={22} color="white" />
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.wordmarkText}>
+        Dish<Text style={{ color: COLORS.primary }}>l</Text>y
+      </Text>
+      <TouchableOpacity style={styles.searchIcon} onPress={() => router.push('/(app)/(tabs)/explore')}>
+        <AppIcon name="search" size={22} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -265,51 +237,39 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.navDark,
   },
   header: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     backgroundColor: COLORS.navDark,
   },
-  wordmark: {
-    flexDirection: 'row',
-  },
   wordmarkText: {
-    fontFamily: 'Georgia', // Serif logic
+    fontFamily: 'Georgia',
     fontSize: 24,
     fontWeight: '700',
     color: 'white',
   },
   searchIcon: {
-    padding: 4,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  debugBtn: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 8,
+    padding: 6,
   },
   tabStrip: {
     flexDirection: 'row',
     backgroundColor: COLORS.navDark,
     paddingHorizontal: 10,
+    paddingBottom: 2,
   },
   tab: {
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    marginRight: 8,
+    marginRight: 4,
   },
   activeTab: {
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   activeTabText: {
@@ -319,7 +279,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
   },
   listPadding: {
-    padding: 16,
+    padding: 12,
+    paddingBottom: 24,
   },
   flex1: {
     flex: 1,
@@ -340,7 +301,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 100,
+    paddingTop: 80,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
     fontSize: 18,

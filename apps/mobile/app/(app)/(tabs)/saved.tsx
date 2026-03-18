@@ -1,14 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { COLORS } from '../../../constants/colors';
+import { AppIcon } from '../../../constants/icons';
 
 export default function SavedScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar />
-      <Text style={styles.text}>Saved Screen</Text>
-      <Text style={styles.subtext}>Coming Soon...</Text>
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Saved</Text>
+        </View>
+      </SafeAreaView>
+
+      <View style={styles.emptyState}>
+        <View style={styles.iconWrap}>
+          <AppIcon name="saved" size={36} color={COLORS.primary} />
+        </View>
+        <Text style={styles.emptyTitle}>No saved recipes yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Tap the bookmark on any recipe to save it here for later.
+        </Text>
+        <TouchableOpacity
+          style={styles.exploreBtn}
+          activeOpacity={0.85}
+          onPress={() => router.push('/(app)/(tabs)/explore')}
+        >
+          <AppIcon name="explore" size={16} color={COLORS.textInverse} />
+          <Text style={styles.exploreBtnText}>Explore recipes</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -16,18 +40,65 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: COLORS.background,
   },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
+  safeArea: {
+    backgroundColor: COLORS.navDark,
   },
-  subtext: {
-    fontSize: 16,
+  header: {
+    height: 56,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.navDark,
+  },
+  headerTitle: {
+    fontFamily: 'Georgia',
+    fontSize: 22,
+    fontWeight: '700',
+    color: 'white',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    paddingBottom: 60,
+  },
+  iconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  exploreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  exploreBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textInverse,
   },
 });

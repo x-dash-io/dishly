@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 import { RecipeCard } from '../../../components/recipe/RecipeCard';
 import { RecipeCardSkeleton } from '../../../components/recipe/RecipeCardSkeleton';
 import { Button } from '../../../components/ui/Button';
@@ -104,7 +103,6 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar />
       <View style={styles.stickyHeader}>
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <View style={styles.searchContainer}>
@@ -114,14 +112,14 @@ export default function ExploreScreen() {
                 ref={searchInputRef}
                 style={styles.searchInput}
                 placeholder="Search recipes, cuisines, ingredients…"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCorrect={false}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={handleClearSearch} style={styles.clearIcon}>
-                  <AppIcon name="close" size={16} color={COLORS.textMuted} />
+                  <AppIcon name="close" size={16} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -266,74 +264,78 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   stickyHeader: {
-    backgroundColor: COLORS.background,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.navDark,
     zIndex: 10,
   },
   safeArea: {
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.navDark,
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 12,
-    height: 48,
+    height: 44,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 16,
-    color: COLORS.textPrimary,
+    fontSize: 15,
+    color: 'white',
     height: '100%',
   },
   clearIcon: {
     padding: 4,
   },
   filterStrip: {
-    marginBottom: 12,
+    marginBottom: 0,
   },
   filterContent: {
     paddingHorizontal: 16,
+    paddingBottom: 12,
     gap: 8,
   },
   chip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 6,
   },
   chipActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
   chipInactive: {
-    backgroundColor: 'transparent',
-    borderColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   chipText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   chipTextActive: {
     color: 'white',
   },
   chipTextInactive: {
-    color: COLORS.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
   },
   content: {
     flex: 1,
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: 2,
   },
   listPadding: {
     padding: 16,

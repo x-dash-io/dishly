@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { COLORS } from '@/constants/colors';
 import type { Ingredient } from '@dishly/types';
 
 interface IngredientRowProps {
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.textMuted,
+    backgroundColor: COLORS.primary,
     marginTop: 8,
     marginRight: 12,
   },

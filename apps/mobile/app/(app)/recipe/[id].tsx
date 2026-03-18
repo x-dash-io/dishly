@@ -11,9 +11,11 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
+import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { useRecipe } from '../../../hooks/useRecipe';
 import { useServingScaler } from '../../../hooks/useServingScaler';
@@ -21,7 +23,6 @@ import { useLikeRecipe, useSaveRecipe } from '../../../hooks/useRecipeActions';
 import { IngredientRow } from '../../../components/recipe/IngredientRow';
 import { StepCard } from '../../../components/recipe/StepCard';
 import { CommentsPreview } from '../../../components/recipe/CommentsPreview';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 
 const HEADER_HEIGHT_EXPANDED = 300;
 const HEADER_HEIGHT_COLLAPSED = 90;
@@ -91,7 +92,7 @@ export default function RecipeDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar />
+      <StatusBar style="light" translucent={false} />
       
       {/* Parallax Hero Image */}
       <Animated.View style={[styles.heroContainer, { transform: [{ translateY: imageTranslateY }] }]}>
@@ -154,9 +155,17 @@ export default function RecipeDetailScreen() {
           {/* Title and Badges */}
           <Text style={styles.title}>{recipe.title}</Text>
           <View style={styles.badgeRow}>
-            {recipe.cuisine && <View style={styles.badge}><Text style={styles.badgeText}>{recipe.cuisine}</Text></View>}
-            <View style={[styles.badge, styles.difficultyBadge]}><Text style={styles.difficultyText}>{recipe.difficulty}</Text></View>
-            {recipe.is_ai_generated && <View style={[styles.badge, styles.aiBadge]}><Text style={styles.aiBadgeText}>AI Estimated</Text></View>}
+            {recipe.cuisine && (
+              <Badge variant="secondary" label={recipe.cuisine} size="sm" />
+            )}
+            <Badge
+              variant="muted"
+              label={recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
+              size="sm"
+            />
+            {recipe.is_ai_generated && (
+              <Badge variant="ai" label="AI Recipe" size="sm" />
+            )}
           </View>
 
           {/* Meta Info */}
@@ -191,9 +200,9 @@ export default function RecipeDetailScreen() {
           {/* Ingredients */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ingredients</Text>
-            {recipe.ingredients?.map((ing: any) => (
+            {recipe.ingredients?.map((ing) => (
               <IngredientRow 
-                key={ing.name + ing.orderIndex} 
+                key={ing.id ?? ing.name} 
                 ingredient={ing} 
                 scaledQuantity={ing.quantity ? scaleQuantity(ing.quantity) : ''} 
               />
@@ -204,9 +213,9 @@ export default function RecipeDetailScreen() {
           {/* Steps */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Steps</Text>
-            {recipe.steps?.map((step: any, idx: number) => (
+            {recipe.steps?.map((step, idx) => (
               <StepCard 
-                key={idx} 
+                key={step.id ?? idx} 
                 recipeId={recipe.id} 
                 step={step} 
                 index={idx} 
@@ -448,37 +457,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 24,
-  },
-  badge: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  difficultyBadge: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'transparent',
-  },
-  difficultyText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  aiBadge: {
-    backgroundColor: COLORS.aiPurple + '1A', // With opacity
-    borderColor: COLORS.aiPurple,
-  },
-  aiBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.aiPurple,
   },
   metaDivider: {
     height: 1,

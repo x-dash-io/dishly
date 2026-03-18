@@ -3,8 +3,8 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator 
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useApiClient } from '../../src/lib/api-client';
-import { COLORS } from '../../constants/colors';
+import { useApiClient } from '@/src/lib/api-client';
+import { COLORS } from '@/constants/colors';
 
 // Types representing external API shapes
 export interface RecipeComment {

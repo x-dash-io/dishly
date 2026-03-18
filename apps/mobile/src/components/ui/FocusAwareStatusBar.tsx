@@ -1,18 +1,19 @@
 import * as React from 'react';
 import { StatusBar, StatusBarProps } from 'expo-status-bar';
 import { useIsFocused } from '@react-navigation/native';
-import { useColorScheme } from 'react-native';
 
+/**
+ * Context-aware status bar.
+ * Defaults: light icons (for dark navDark header backgrounds).
+ * Pass style="dark" explicitly on auth screens and any screen with a light header.
+ */
 export function FocusAwareStatusBar(props: StatusBarProps) {
   const isFocused = useIsFocused();
-  const colorScheme = useColorScheme();
 
-  const defaultProps: StatusBarProps = {
-    style: 'light', // Always use light content (white icons/text)
-    backgroundColor: '#FDF6ED', // Always use creamy background
+  const defaults: StatusBarProps = {
+    style: 'light',
     translucent: false,
-    ...props
   };
 
-  return isFocused ? <StatusBar {...defaultProps} /> : null;
+  return isFocused ? <StatusBar {...defaults} {...props} /> : null;
 }

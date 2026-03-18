@@ -1,40 +1,33 @@
-import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal } from 'react-native';
-import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Modal,
+  Pressable,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
-import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 
 export default function TabsLayout() {
   const router = useRouter();
-  const createSheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ['28%'], []);
+  const insets = useSafeAreaInsets();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
-  console.log('TabsLayout mounted, FAB should work');
-
-  // Debug: Check if ref is available
-  useEffect(() => {
-    console.log('createSheetRef after mount:', createSheetRef.current);
-  }, []);
-
-  const renderBackdrop = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />,
-    []
-  );
 
   return (
     <>
-      <FocusAwareStatusBar />
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: styles.tabBar,
           tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.4)',
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.45)',
           tabBarShowLabel: true,
+          tabBarLabelStyle: styles.tabLabel,
         }}
       >
         <Tabs.Screen
@@ -55,20 +48,14 @@ export default function TabsLayout() {
           name="create"
           options={{
             title: '',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            tabBarButton: (props: any) => (
+            tabBarButton: () => (
               <TouchableOpacity
-                {...props}
-                style={[props.style, styles.createButtonContainer]}
-                activeOpacity={0.8}
-                onPress={() => {
-                  console.log('FAB button pressed!');
-                  console.log('createSheetRef.current:', createSheetRef.current);
-                  setShowCreateModal(true);
-                }}
+                style={styles.fabWrapper}
+                activeOpacity={0.85}
+                onPress={() => setShowCreateModal(true)}
               >
-                <View style={styles.createButton}>
-                  <AppIcon name="add" size={32} color={COLORS.textInverse} />
+                <View style={styles.fab}>
+                  <AppIcon name="add" size={28} color={COLORS.textInverse} />
                 </View>
               </TouchableOpacity>
             ),
@@ -90,109 +77,60 @@ export default function TabsLayout() {
         />
       </Tabs>
 
-      {/* Premium Create Modal */}
+      {/* Create Modal — bottom sheet style */}
       <Modal
         visible={showCreateModal}
-        transparent={true}
+        transparent
         animationType="slide"
+        statusBarTranslucent
         onRequestClose={() => setShowCreateModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity 
-                style={styles.closeButton} 
-                onPress={() => setShowCreateModal(false)}
-              >
-                <AppIcon name="close" size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.modalTitle}>What would you like to create?</Text>
-            
-            <View style={styles.modalOptions}>
+        <Pressable style={styles.backdrop} onPress={() => setShowCreateModal(false)}>
+          <Pressable
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
+            onPress={() => {}}
+          >
+            {/* Handle */}
+            <View style={styles.handle} />
+
+            <Text style={styles.sheetTitle}>What would you like to create?</Text>
+
+            <View style={styles.optionsRow}>
+              {/* Human Create */}
               <TouchableOpacity
-                style={styles.modalOption}
+                style={styles.option}
                 activeOpacity={0.8}
                 onPress={() => {
-                  console.log('Create Recipe pressed');
                   setShowCreateModal(false);
                   router.push('/create');
                 }}
               >
-                <View style={[styles.optionIconBg, { backgroundColor: COLORS.primary + '22' }]}>
-                  <AppIcon name="create" size={28} color={COLORS.primary} />
+                <View style={[styles.optionIcon, { backgroundColor: COLORS.primary + '1A' }]}>
+                  <AppIcon name="create" size={26} color={COLORS.primary} />
                 </View>
                 <Text style={styles.optionTitle}>Create Recipe</Text>
-                <Text style={styles.optionSubtitle}>Step-by-step wizard</Text>
+                <Text style={styles.optionSub}>Step-by-step wizard</Text>
               </TouchableOpacity>
 
+              {/* AI Generate */}
               <TouchableOpacity
-                style={styles.modalOption}
+                style={[styles.option, styles.optionAI]}
                 activeOpacity={0.8}
                 onPress={() => {
-                  console.log('AI Generate pressed');
                   setShowCreateModal(false);
                   router.push('/ai-generate');
                 }}
               >
-                <View style={[styles.optionIconBg, { backgroundColor: COLORS.aiPurple + '22' }]}>
-                  <AppIcon name="aiGenerate" size={28} color={COLORS.aiPurple} />
+                <View style={[styles.optionIcon, { backgroundColor: COLORS.aiPurple + '1A' }]}>
+                  <AppIcon name="aiGenerate" size={26} color={COLORS.aiPurple} />
                 </View>
                 <Text style={[styles.optionTitle, { color: COLORS.aiPurple }]}>✦ AI Generate</Text>
-                <Text style={styles.optionSubtitle}>From fridge or text</Text>
+                <Text style={styles.optionSub}>From fridge or ingredients</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
-
-      {/* Create mode chooser */}
-      <BottomSheetModal
-        ref={createSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBg}
-        handleIndicatorStyle={{ backgroundColor: COLORS.border }}
-      >
-        <View style={styles.sheetContent}>
-          <Text style={styles.sheetTitle}>What would you like to create?</Text>
-          <View style={styles.sheetOptionsRow}>
-            <TouchableOpacity
-              style={styles.sheetOption}
-              activeOpacity={0.8}
-              onPress={() => {
-                console.log('Create Recipe pressed');
-                createSheetRef.current?.dismiss();
-                router.push('/create');
-              }}
-            >
-              <View style={[styles.optionIconBg, { backgroundColor: COLORS.primary + '22' }]}>
-                <AppIcon name="create" size={28} color={COLORS.primary} />
-              </View>
-              <Text style={styles.optionTitle}>Create Recipe</Text>
-              <Text style={styles.optionSubtitle}>Step-by-step wizard</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sheetOption}
-              activeOpacity={0.8}
-              onPress={() => {
-                console.log('AI Generate pressed');
-                createSheetRef.current?.dismiss();
-                router.push('/ai-generate');
-              }}
-            >
-              <View style={[styles.optionIconBg, { backgroundColor: COLORS.aiPurple + '22' }]}>
-                <AppIcon name="aiGenerate" size={28} color={COLORS.aiPurple} />
-              </View>
-              <Text style={[styles.optionTitle, { color: COLORS.aiPurple }]}>✦ AI Generate</Text>
-              <Text style={styles.optionSubtitle}>From fridge or text</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </BottomSheetModal>
     </>
   );
 }
@@ -202,108 +140,86 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.navDark,
     borderTopWidth: 0,
     height: Platform.OS === 'ios' ? 88 : 64,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+    paddingTop: 8,
+    elevation: 0,
   },
-  createButtonContainer: {
-    top: -20,
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  fabWrapper: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
-    elevation: 10,
+    marginTop: -22,
   },
-  createButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
     elevation: 8,
   },
-  sheetBg: {
-    backgroundColor: COLORS.background,
-    borderRadius: 24,
-  },
-  modalOverlay: {
+  // Modal sheet
+  backdrop: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContainer: {
-    backgroundColor: COLORS.background,
-    borderRadius: 24,
-    margin: 20,
-    maxWidth: 320,
-    width: '100%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
     justifyContent: 'flex-end',
-    padding: 16,
-    paddingBottom: 8,
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  modalOptions: {
-    gap: 16,
-  },
-  modalOption: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  sheetContent: {
-    padding: 24,
+  sheet: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingTop: 12,
+    paddingHorizontal: 20,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   sheetTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.textMuted,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     marginBottom: 20,
+    textTransform: 'uppercase',
   },
-  sheetOptionsRow: {
+  optionsRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
+    marginBottom: 8,
   },
-  sheetOption: {
+  option: {
     flex: 1,
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  optionIconBg: {
-    width: 56,
-    height: 56,
+  optionAI: {
+    borderColor: COLORS.aiPurple + '40',
+    backgroundColor: COLORS.aiPurpleLight,
+  },
+  optionIcon: {
+    width: 52,
+    height: 52,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -312,8 +228,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.textPrimary,
+    textAlign: 'center',
   },
-  optionSubtitle: {
+  optionSub: {
     fontSize: 12,
     color: COLORS.textMuted,
     textAlign: 'center',
