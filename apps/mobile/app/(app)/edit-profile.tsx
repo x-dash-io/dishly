@@ -19,6 +19,7 @@ import { useApiClient } from '../../src/lib/api-client';
 import { COLORS } from '../../constants/colors';
 import { Button } from '../../components/ui/Button';
 import { AppIcon } from '../../constants/icons';
+import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
 import type { UserProfile } from '@dishly/types';
 
 const DIETARY_PREFS = ['Vegan', 'Vegetarian', 'Gluten-free', 'Dairy-free', 'Halal', 'Kosher', 'Keto', 'Paleo'];
@@ -85,7 +86,7 @@ export default function EditProfileScreen() {
   }, [username, me]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: (payload: any) => api.request('PATCH', '/users/me', { data: payload }),
+    mutationFn: (payload: any) => api.request('PATCH', '/users/me', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       // Invalidate the public profile view for this user
@@ -149,6 +150,7 @@ export default function EditProfileScreen() {
   if (meLoading) {
     return (
       <View style={[styles.container, styles.center]}>
+        <FocusAwareStatusBar />
         <ActivityIndicator color={COLORS.primary} size="large" />
       </View>
     );
@@ -156,6 +158,7 @@ export default function EditProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <FocusAwareStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>

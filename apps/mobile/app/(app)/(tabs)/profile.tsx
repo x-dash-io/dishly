@@ -1,9 +1,10 @@
 import React from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { UserProfileView } from '../../../components/profile/UserProfileView';
 import { useApiClient } from '../../../src/lib/api-client';
 import { COLORS } from '../../../constants/colors';
+import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 
 export default function ProfileTab() {
   const api = useApiClient();
@@ -17,16 +18,27 @@ export default function ProfileTab() {
   if (isLoading) {
     return (
       <View style={styles.center}>
+        <FocusAwareStatusBar />
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   if (!me?.username) {
-    return null;
+    return (
+      <View style={styles.center}>
+        <FocusAwareStatusBar />
+        <Text style={styles.errorText}>Profile not found</Text>
+      </View>
+    );
   }
 
-  return <UserProfileView username={me.username} isOwnProfile={true} showBackButton={false} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <FocusAwareStatusBar />
+      <UserProfileView username={me.username} isOwnProfile={true} showBackButton={false} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -35,5 +47,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
   }
 });

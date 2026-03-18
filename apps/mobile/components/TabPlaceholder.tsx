@@ -4,7 +4,7 @@ import { FocusAwareStatusBar } from '../src/components/ui/FocusAwareStatusBar';
 export default function TabPlaceholder({ name }: { name: string }) {
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar style="dark" />
+      <FocusAwareStatusBar />
       <Text style={styles.text}>{name} Screen</Text>
       <Text style={styles.subtext}>Coming Soon...</Text>
     </View>

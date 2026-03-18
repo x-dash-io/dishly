@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+// Simple ID generator for React Native compatibility
+const generateId = () => Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+
 export interface DraftIngredient {
   id: string;          
   name: string;
@@ -61,7 +64,7 @@ export const useRecipeDraft = create<RecipeDraftState>((set) => ({
 
   addIngredient: () => set(state => ({
     ingredients: [...state.ingredients, {
-      id: crypto.randomUUID(), name: '', quantity: '', unit: '', notes: ''
+      id: generateId(), name: '', quantity: '', unit: '', notes: ''
     }]
   })),
 
@@ -81,7 +84,7 @@ export const useRecipeDraft = create<RecipeDraftState>((set) => ({
 
   addStep: () => set(state => ({
     steps: [...state.steps, {
-      id: crypto.randomUUID(), instruction: '',
+      id: generateId(), instruction: '',
       imageUri: null, imageUrl: null, timer_seconds: null
     }]
   })),

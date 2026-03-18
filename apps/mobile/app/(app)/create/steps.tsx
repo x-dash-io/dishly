@@ -202,7 +202,13 @@ export default function CreateStep4StepsScreen() {
       <WizardHeader 
         step={4} 
         title="Cooking Steps" 
-        onBack={() => router.back()} 
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/create');
+          }
+        }} 
       />
       
       <View style={styles.topActions}>

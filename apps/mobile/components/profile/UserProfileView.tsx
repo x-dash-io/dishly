@@ -10,6 +10,7 @@ import { Badge } from '../ui/Badge';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { useUserProfile, useFollowUser, useUserRecipes, useUserSavedRecipes } from '../../hooks/useUserProfile';
+import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
 import type { RecipeCardItem } from '@dishly/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -188,6 +189,7 @@ export function UserProfileView({ username, isOwnProfile = false, showBackButton
 
   return (
     <View style={styles.container}>
+      <FocusAwareStatusBar />
       {/* @ts-ignore */}
       <FlashList
         data={recipesOutput as any}

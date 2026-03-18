@@ -18,6 +18,7 @@ import { COLORS } from '../../constants/colors';
 import { AppIcon } from '../../constants/icons';
 import { Button } from '../../components/ui/Button';
 import { useApiClient } from '../../src/lib/api-client';
+import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
 
 type Mode = 'choose' | 'camera' | 'text' | 'review';
 
@@ -155,6 +156,7 @@ export default function AiGenerateScreen() {
   // ──────────────────────────────────────────────
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <FocusAwareStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

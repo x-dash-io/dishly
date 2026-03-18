@@ -104,7 +104,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar style="dark" />
+      <FocusAwareStatusBar />
       <View style={styles.stickyHeader}>
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <View style={styles.searchContainer}>

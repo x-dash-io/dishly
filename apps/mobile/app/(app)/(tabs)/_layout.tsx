@@ -1,14 +1,23 @@
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal } from 'react-native';
 import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
+import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 
 export default function TabsLayout() {
   const router = useRouter();
   const createSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ['28%'], []);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  console.log('TabsLayout mounted, FAB should work');
+
+  // Debug: Check if ref is available
+  useEffect(() => {
+    console.log('createSheetRef after mount:', createSheetRef.current);
+  }, []);
 
   const renderBackdrop = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,6 +27,7 @@ export default function TabsLayout() {
 
   return (
     <>
+      <FocusAwareStatusBar />
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -51,7 +61,11 @@ export default function TabsLayout() {
                 {...props}
                 style={[props.style, styles.createButtonContainer]}
                 activeOpacity={0.8}
-                onPress={() => createSheetRef.current?.present()}
+                onPress={() => {
+                  console.log('FAB button pressed!');
+                  console.log('createSheetRef.current:', createSheetRef.current);
+                  setShowCreateModal(true);
+                }}
               >
                 <View style={styles.createButton}>
                   <AppIcon name="add" size={32} color={COLORS.textInverse} />
@@ -76,10 +90,67 @@ export default function TabsLayout() {
         />
       </Tabs>
 
+      {/* Premium Create Modal */}
+      <Modal
+        visible={showCreateModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCreateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => setShowCreateModal(false)}
+              >
+                <AppIcon name="close" size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalTitle}>What would you like to create?</Text>
+            
+            <View style={styles.modalOptions}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                activeOpacity={0.8}
+                onPress={() => {
+                  console.log('Create Recipe pressed');
+                  setShowCreateModal(false);
+                  router.push('/create');
+                }}
+              >
+                <View style={[styles.optionIconBg, { backgroundColor: COLORS.primary + '22' }]}>
+                  <AppIcon name="create" size={28} color={COLORS.primary} />
+                </View>
+                <Text style={styles.optionTitle}>Create Recipe</Text>
+                <Text style={styles.optionSubtitle}>Step-by-step wizard</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                activeOpacity={0.8}
+                onPress={() => {
+                  console.log('AI Generate pressed');
+                  setShowCreateModal(false);
+                  router.push('/ai-generate');
+                }}
+              >
+                <View style={[styles.optionIconBg, { backgroundColor: COLORS.aiPurple + '22' }]}>
+                  <AppIcon name="aiGenerate" size={28} color={COLORS.aiPurple} />
+                </View>
+                <Text style={[styles.optionTitle, { color: COLORS.aiPurple }]}>✦ AI Generate</Text>
+                <Text style={styles.optionSubtitle}>From fridge or text</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Create mode chooser */}
       <BottomSheetModal
         ref={createSheetRef}
-        index={0}
+        index={-1}
         snapPoints={snapPoints}
         backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBg}
@@ -92,6 +163,7 @@ export default function TabsLayout() {
               style={styles.sheetOption}
               activeOpacity={0.8}
               onPress={() => {
+                console.log('Create Recipe pressed');
                 createSheetRef.current?.dismiss();
                 router.push('/create');
               }}
@@ -107,6 +179,7 @@ export default function TabsLayout() {
               style={styles.sheetOption}
               activeOpacity={0.8}
               onPress={() => {
+                console.log('AI Generate pressed');
                 createSheetRef.current?.dismiss();
                 router.push('/ai-generate');
               }}
@@ -136,6 +209,8 @@ const styles = StyleSheet.create({
     top: -20,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
+    elevation: 10,
   },
   createButton: {
     width: 60,
@@ -153,6 +228,52 @@ const styles = StyleSheet.create({
   sheetBg: {
     backgroundColor: COLORS.background,
     borderRadius: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: {
+    backgroundColor: COLORS.background,
+    borderRadius: 24,
+    margin: 20,
+    maxWidth: 320,
+    width: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    paddingBottom: 8,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalOptions: {
+    gap: 16,
+  },
+  modalOption: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   sheetContent: {
     padding: 24,

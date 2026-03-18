@@ -1,7 +1,6 @@
 import { useAuth } from '@clerk/clerk-expo';
 import { Redirect, Stack } from 'expo-router';
 import { FocusAwareStatusBar } from '../../src/components/ui/FocusAwareStatusBar';
-import { COLORS } from '../../constants/colors';
 
 export default function AuthLayout() {
   const { isSignedIn } = useAuth();
@@ -11,7 +10,7 @@ export default function AuthLayout() {
   if (isSignedIn) {
     return (
       <>
-        <FocusAwareStatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
+        <FocusAwareStatusBar />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="sign-in" redirect />
@@ -23,7 +22,7 @@ export default function AuthLayout() {
 
   return (
     <>
-      <FocusAwareStatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
+      <FocusAwareStatusBar />
       <Stack screenOptions={{ headerShown: false }} />
     </>
   );

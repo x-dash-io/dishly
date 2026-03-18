@@ -57,7 +57,13 @@ export default function CreateStep1InfoScreen() {
       <WizardHeader 
         step={1} 
         title="Basic Info" 
-        onBack={() => router.back()} 
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/create');
+          }
+        }} 
       />
       
       <KeyboardAvoidingView 

@@ -91,7 +91,7 @@ export default function RecipeDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar style="light" />
+      <FocusAwareStatusBar />
       
       {/* Parallax Hero Image */}
       <Animated.View style={[styles.heroContainer, { transform: [{ translateY: imageTranslateY }] }]}>

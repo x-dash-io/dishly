@@ -69,7 +69,13 @@ export default function CreateStep2PhotosScreen() {
       <WizardHeader 
         step={2} 
         title="Photos" 
-        onBack={() => router.back()} 
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/create');
+          }
+        }} 
       />
       
       <ScrollView 

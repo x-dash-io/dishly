@@ -155,7 +155,13 @@ export default function CreateStep3IngredientsScreen() {
       <WizardHeader 
         step={3} 
         title="Ingredients" 
-        onBack={() => router.back()} 
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/create');
+          }
+        }} 
       />
       
       <View style={styles.topActions}>

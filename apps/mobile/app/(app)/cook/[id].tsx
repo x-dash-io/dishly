@@ -21,6 +21,8 @@ import { COLORS } from '../../../constants/colors';
 import { AppIcon } from '../../../constants/icons';
 import { Button } from '../../../components/ui/Button';
 import { useCookTimer } from '../../../hooks/useCookTimer';
+import { useCookQA } from '../../../hooks/useCookQA';
+import { FocusAwareStatusBar } from '../../../src/components/ui/FocusAwareStatusBar';
 import type { FullRecipe, Step } from '@dishly/types';
 
 const { width } = Dimensions.get('window');
@@ -37,6 +39,7 @@ export default function CookModeScreen() {
   if (!recipe || !recipe.steps) {
     return (
       <View style={[styles.container, styles.center]}>
+        <FocusAwareStatusBar />
         <Text style={styles.errorText}>Recipe data not found. Please load recipe details first.</Text>
         <Button label="Go Back" variant="primary" onPress={() => router.back()} />
       </View>
@@ -49,6 +52,26 @@ export default function CookModeScreen() {
   const [currentStepIndex, setCurrentStepIndex] = useState(initialStep >= 0 && initialStep < stepsCount ? initialStep : 0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isFinished, setIsFinished] = useState(false);
+  
+  // AI Q&A state
+  const [isAIExpanded, setIsAIExpanded] = useState(false);
+  const [showCursor, setShowCursor] = useState(true);
+  const [aiInputText, setAiInputText] = useState('');
+  const { messages, isLoading, ask, getMessagesForStep } = useCookQA(id!);
+  const currentStepMessages = getMessagesForStep(currentStepIndex);
+  
+  // Blinking cursor effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Reset AI panel when step changes
+  useEffect(() => {
+    setIsAIExpanded(false);
+  }, [currentStepIndex]);
   
   // Total elapsed time
   const [totalSeconds, setTotalSeconds] = useState(0);
@@ -138,9 +161,17 @@ export default function CookModeScreen() {
     }
   };
 
+  const handleAIAsk = async (question: string) => {
+    if (question.trim() && !isLoading) {
+      await ask(question.trim(), currentStepIndex);
+      setAiInputText(''); // Clear input after sending
+    }
+  };
+
   if (isFinished) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <FocusAwareStatusBar />
         <Animated.View style={[styles.completionContainer, { 
           opacity: opacityAnim, 
           transform: [{ scale: scaleAnim }] 
@@ -185,6 +216,7 @@ export default function CookModeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <FocusAwareStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
@@ -256,21 +288,64 @@ export default function CookModeScreen() {
 
           <View style={{ flex: 1 }} />
 
-          {/* AI Ask Placeholder */}
-          <View style={styles.aiAskContainer}>
-            <AppIcon name="aiGenerate" size={18} color={COLORS.aiPurple} />
-            <TextInput 
-              style={styles.aiInput}
-              placeholder="Ask AI anything about this step..."
-              placeholderTextColor={COLORS.aiPurple + '80'}
-              editable={false}
-              pointerEvents="none"
-            />
-            <AppIcon name="send" size={18} color={COLORS.aiPurple} />
-            <TouchableOpacity 
-              style={StyleSheet.absoluteFill} 
-              onPress={() => Alert.alert('Coming Soon', 'AI cooking assistant coming soon!')} 
-            />
+          {/* AI Q&A Panel */}
+          <View style={styles.aiPanelContainer}>
+            {/* Collapsed state */}
+            {!isAIExpanded && currentStepMessages.length === 0 && (
+              <TouchableOpacity 
+                style={styles.aiCollapsedPanel}
+                onPress={() => setIsAIExpanded(true)}
+              >
+                <AppIcon name="aiGenerate" size={16} color={COLORS.aiPurple} />
+                <Text style={styles.aiCollapsedText}>Ask anything about this step</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Expanded state */}
+            {(isAIExpanded || currentStepMessages.length > 0) && (
+              <View style={styles.aiExpandedPanel}>
+                {/* Previous Q&As for this step */}
+                {currentStepMessages.map((message) => (
+                  <View key={message.id} style={styles.qaMessage}>
+                    <Text style={styles.questionText}>Q: {message.question}</Text>
+                    <Text style={styles.answerText}>
+                      A: {message.answer}
+                      {message.isStreaming && showCursor && '▊'}
+                    </Text>
+                  </View>
+                ))}
+
+                {/* Input area */}
+                <View style={styles.aiInputContainer}>
+                  <AppIcon name="aiGenerate" size={16} color={COLORS.aiPurple} />
+                  <TextInput
+                    style={styles.aiInput}
+                    placeholder="Ask something…"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={aiInputText}
+                    onChangeText={setAiInputText}
+                    onSubmitEditing={() => {
+                      handleAIAsk(aiInputText);
+                    }}
+                    editable={!isLoading}
+                    multiline={false}
+                    returnKeyType="send"
+                  />
+                  <TouchableOpacity 
+                    onPress={() => {
+                      handleAIAsk(aiInputText);
+                    }}
+                    disabled={isLoading || !aiInputText.trim()}
+                  >
+                    <AppIcon 
+                      name="send" 
+                      size={16} 
+                      color={isLoading || !aiInputText.trim() ? COLORS.textMuted : COLORS.aiPurple} 
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </PanGestureHandler>
@@ -452,6 +527,59 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.aiPurpleLight,
     borderRadius: 24,
     borderWidth: 0.5,
+    borderColor: COLORS.aiPurple,
+  },
+  aiPanelContainer: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+  },
+  aiCollapsedPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.aiPurpleLight,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: COLORS.aiPurple,
+    gap: 8,
+  },
+  aiCollapsedText: {
+    fontSize: 15,
+    color: COLORS.aiPurple,
+    fontWeight: '500',
+  },
+  aiExpandedPanel: {
+    backgroundColor: COLORS.aiPurpleLight,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: COLORS.aiPurple,
+    padding: 16,
+    gap: 12,
+  },
+  qaMessage: {
+    marginBottom: 12,
+  },
+  questionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.mahogany,
+    marginBottom: 4,
+  },
+  answerText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    lineHeight: 20,
+  },
+  aiInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    borderWidth: 1,
     borderColor: COLORS.aiPurple,
   },
   aiInput: {

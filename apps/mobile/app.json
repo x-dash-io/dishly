@@ -5,8 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "statusBar": {
+      "hidden": false,
+      "style": "light",
+      "backgroundColor": "#FDF6ED",
+      "translucent": false
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,7 +20,9 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dishly.app"
+      "bundleIdentifier": "com.dishly.app",
+      "statusBarStyle": "light",
+      "statusBarBackgroundColor": "#FDF6ED"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +31,13 @@
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#FDF6ED"
       },
-      "package": "com.dishly.app"
+      "package": "com.dishly.app",
+      "statusBar": {
+        "hidden": false,
+        "translucent": false,
+        "backgroundColor": "#FDF6ED",
+        "barStyle": "light-content"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

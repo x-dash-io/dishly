@@ -8,6 +8,8 @@ import { requireAuth } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
 import { getDb } from '../lib/db';
 import { getGemini, GEMINI_MODEL, urlToImagePart } from '../lib/gemini';
+import { streamText } from 'hono/streaming';
+import { CookQASchema } from '@dishly/validators';
 
 export const aiRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variables }>()
 
@@ -365,6 +367,118 @@ Input: ${text}`;
         if (err instanceof SyntaxError) {
           return c.json({ error: 'AI_PARSE_ERROR' }, 502);
         }
+        return c.json({ error: 'AI_GENERATION_FAILED', message: err.message }, 502);
+      }
+    }
+  )
+
+  /**
+   * POST /ai/cook-qa
+   * Ask questions about recipe while cooking
+   */
+  .post(
+    '/cook-qa',
+    requireAuth,
+    rateLimit('ai'),
+    zValidator('json', CookQASchema),
+    async (c) => {
+      const currentUser = c.get('user')!;
+      const { recipe_id, current_step_index, question } = c.req.valid('json');
+      const db = getDb(c);
+      const startTime = Date.now();
+
+      // 1. Fetch recipe with ingredients and steps from DB
+      const recipeData = await db
+        .select({
+          recipe: recipes,
+          ingredients: ingredientsDb,
+          steps: stepsDb,
+        })
+        .from(recipes)
+        .leftJoin(ingredientsDb, eq(recipes.id, ingredientsDb.recipeId))
+        .leftJoin(stepsDb, eq(recipes.id, stepsDb.recipeId))
+        .where(eq(recipes.id, recipe_id))
+        .limit(1);
+
+      if (!recipeData.length) {
+        return c.json({ error: 'Recipe not found' }, 404);
+      }
+
+      // Check if user has access (owner or public)
+      const recipe = recipeData[0].recipe;
+      if (recipe.userId !== currentUser.id && recipe.visibility !== 'public') {
+        return c.json({ error: 'Recipe not accessible' }, 404);
+      }
+
+      // Organize ingredients and steps
+      const ingredients = recipeData
+        .map(row => row.ingredients)
+        .filter(Boolean)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+
+      const steps = recipeData
+        .map(row => row.steps)
+        .filter(Boolean)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+
+      // 2. Build context prompt
+      const systemPrompt = `You are a friendly, expert cooking assistant helping someone cook a recipe right now. They are mid-cook and need quick, practical help. Keep answers SHORT — 2–4 sentences maximum. Be encouraging and specific. Never suggest starting the recipe over unless absolutely necessary.
+
+RECIPE: ${recipe.title}
+CUISINE: ${recipe.cuisine ?? 'unspecified'}
+DIFFICULTY: ${recipe.difficulty}
+SERVINGS: ${recipe.servings}
+
+ALL INGREDIENTS:
+${ingredients.map(i => `- ${i.quantity} ${i.unit} ${i.name}${i.notes ? ` (${i.notes})` : ''}`).join('\n')}
+
+ALL STEPS:
+${steps.map((s, idx) => `Step ${idx + 1}: ${s.instruction}`).join('\n')}
+
+CURRENT STEP (step ${current_step_index + 1}):
+${steps[current_step_index]?.instruction ?? 'Unknown step'}
+
+The user is currently on step ${current_step_index + 1} of ${steps.length}.
+Answer their question in the context of this recipe and this step.`;
+
+      // 3. Stream the response using Gemini's streaming API
+      try {
+        const gemini = getGemini(c.env);
+        const model = gemini.getGenerativeModel({ model: GEMINI_MODEL });
+        const result = await model.generateContentStream([
+          { text: systemPrompt },
+          { text: `User question: ${question}` }
+        ]);
+
+        // 4. Return a streaming HTTP response
+        return streamText(c, async (stream) => {
+          try {
+            for await (const chunk of result.stream) {
+              const text = chunk.text();
+              if (text) await stream.write(text);
+            }
+          } catch (streamErr) {
+            await stream.write('[AI assistant temporarily unavailable]');
+          }
+        });
+
+        // 5. Log to ai_generations asynchronously (fire-and-forget after streaming starts)
+        (async () => {
+          try {
+            await db.insert(aiGenerations).values({
+              userId: currentUser.id,
+              inputType: 'cook_qa',
+              inputIngredients: [recipe_id],
+              inputPrompt: question,
+              modelVersion: GEMINI_MODEL,
+              latencyMs: Date.now() - startTime,
+            });
+          } catch (logErr) {
+            // Ignore logging errors
+          }
+        })();
+
+      } catch (err: any) {
         return c.json({ error: 'AI_GENERATION_FAILED', message: err.message }, 502);
       }
     }

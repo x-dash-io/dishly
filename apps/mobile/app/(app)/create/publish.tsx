@@ -126,7 +126,13 @@ export default function CreateStep5PublishScreen() {
       <WizardHeader 
         step={5} 
         title="Review & Publish" 
-        onBack={() => router.back()} 
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/create');
+          }
+        }} 
       />
       
       <ScrollView 

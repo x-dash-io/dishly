@@ -5,6 +5,7 @@ import { tokenCache } from '../src/lib/token-cache';
 import { queryClient } from '../src/lib/query-client';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { env } from '../src/config/env';
 
 export default function RootLayout() {
@@ -13,10 +14,12 @@ export default function RootLayout() {
       <ClerkProvider tokenCache={tokenCache} publishableKey={env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}>
         <ClerkLoaded>
           <QueryClientProvider client={queryClient}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(app)" options={{ headerShown: false }} />
-            </Stack>
+            <BottomSheetModalProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen name="(app)" options={{ headerShown: false }} />
+              </Stack>
+            </BottomSheetModalProvider>
           </QueryClientProvider>
         </ClerkLoaded>
       </ClerkProvider>

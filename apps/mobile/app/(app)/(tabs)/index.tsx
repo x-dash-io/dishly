@@ -87,7 +87,7 @@ export default function HomeFeedScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <FocusAwareStatusBar style="light" />
+        <FocusAwareStatusBar />
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <Header onCopyJWT={handleCopyJWT} />
           <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -104,7 +104,7 @@ export default function HomeFeedScreen() {
   if (isError) {
     return (
       <View style={styles.container}>
-        <FocusAwareStatusBar style="light" />
+        <FocusAwareStatusBar />
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <Header onCopyJWT={handleCopyJWT} />
         </SafeAreaView>
@@ -123,7 +123,7 @@ export default function HomeFeedScreen() {
 
   return (
     <View style={styles.container}>
-      <FocusAwareStatusBar style="light" />
+      <FocusAwareStatusBar />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <Header onCopyJWT={handleCopyJWT} />
         <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
