@@ -4,6 +4,15 @@ export type RecipeDifficulty = 'easy' | 'medium' | 'hard';
 export type RecipeVisibility = 'public' | 'followers' | 'private';
 export type RecipeStatus = 'draft' | 'published' | 'archived';
 
+export interface Collection {
+  id: string;
+  name: string;
+  is_public: boolean;
+  recipe_count: number;
+  cover_images: string[]; // first 4 recipe cover/hero images for mosaic
+  created_at: string;
+}
+
 export interface Ingredient {
   name: string;
   quantity?: string;

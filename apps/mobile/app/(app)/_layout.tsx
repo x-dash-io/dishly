@@ -32,6 +32,7 @@ export default function AppLayout() {
         <Stack.Screen name="edit-profile" />
         <Stack.Screen name="meal-planner" />
         <Stack.Screen name="grocery-list" />
+        <Stack.Screen name="collection/[id]" />
         <Stack.Screen name="create" options={{ presentation: 'modal' }} />
       </Stack>
     </>

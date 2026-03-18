@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, ne, sql } from 'drizzle-orm';
-import { users, follows, recipes, saves } from '@dishly/db';
+import { users, follows, recipes, saves, collections } from '@dishly/db';
 import { UpdateProfileSchema } from '@dishly/validators';
 import type { CloudflareEnv, Variables } from '../types/env';
 import { requireAuth, optionalAuth, verifyClerkToken } from '../middleware/auth';
@@ -306,4 +306,174 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
 
       return c.json({ ok: true });
     }
-  );
+  )
+  /**
+   * GET /users/me/collections
+   * Returns all collections for the authenticated user with cover image mosaic.
+   */
+  .get('/me/collections', requireAuth, async (c) => {
+    const user = c.get('user')!;
+    const db = getDb(c);
+
+    const userCollections = await db
+      .select()
+      .from(collections)
+      .where(eq(collections.userId, user.id))
+      .orderBy(collections.createdAt);
+
+    // Fetch first 4 recipe cover images per collection for the mosaic
+    const result = await Promise.all(
+      userCollections.map(async (col) => {
+        const coverImages = await db
+          .select({ url: recipes.coverImageUrl, hero: recipes.heroImageUrl })
+          .from(saves)
+          .innerJoin(recipes, eq(saves.recipeId, recipes.id))
+          .where(and(eq(saves.collectionId, col.id)))
+          .limit(4);
+
+        return {
+          id: col.id,
+          name: col.name,
+          is_public: col.isPublic ?? false,
+          recipe_count: col.recipeCount ?? 0,
+          cover_images: coverImages.map(r => r.url ?? r.hero).filter(Boolean) as string[],
+          created_at: col.createdAt.toISOString(),
+        };
+      })
+    );
+
+    return c.json(result);
+  })
+
+  /**
+   * POST /users/me/collections
+   * Create a new collection.
+   */
+  .post(
+    '/me/collections',
+    requireAuth,
+    zValidator('json', z.object({
+      name: z.string().min(1).max(60),
+      is_public: z.boolean().default(false),
+    })),
+    async (c) => {
+      const user = c.get('user')!;
+      const { name, is_public } = c.req.valid('json');
+      const db = getDb(c);
+
+      const [col] = await db
+        .insert(collections)
+        .values({ userId: user.id, name, isPublic: is_public })
+        .returning();
+
+      return c.json({
+        id: col.id,
+        name: col.name,
+        is_public: col.isPublic ?? false,
+        recipe_count: 0,
+        cover_images: [],
+        created_at: col.createdAt.toISOString(),
+      }, 201);
+    }
+  )
+
+  /**
+   * DELETE /users/me/collections/:collectionId
+   * Delete a collection. Cascade removes saves in this collection.
+   */
+  .delete('/me/collections/:collectionId', requireAuth, async (c) => {
+    const user = c.get('user')!;
+    const collectionId = c.req.param('collectionId');
+    const db = getDb(c);
+
+    const [col] = await db
+      .select()
+      .from(collections)
+      .where(and(eq(collections.id, collectionId), eq(collections.userId, user.id)))
+      .limit(1);
+
+    if (!col) return c.json({ error: 'Collection not found' }, 404);
+
+    // Disassociate saves from this collection (don't delete the saves themselves)
+    await db
+      .update(saves)
+      .set({ collectionId: null })
+      .where(eq(saves.collectionId, collectionId));
+
+    await db.delete(collections).where(eq(collections.id, collectionId));
+    return c.body(null, 204);
+  })
+
+  /**
+   * GET /users/me/collections/:collectionId/recipes
+   * Paginated recipes in a specific collection.
+   */
+  .get('/me/collections/:collectionId/recipes', requireAuth, async (c) => {
+    const user = c.get('user')!;
+    const collectionId = c.req.param('collectionId');
+    const db = getDb(c);
+
+    const [col] = await db
+      .select()
+      .from(collections)
+      .where(eq(collections.id, collectionId))
+      .limit(1);
+
+    if (!col) return c.json({ error: 'Collection not found' }, 404);
+    if (col.userId !== user.id && !col.isPublic) {
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
+
+    const limit = 20;
+    const cursorStr = c.req.query('cursor');
+    const cursor = cursorStr ? new Date(cursorStr) : new Date();
+
+    const rows = await db
+      .select({
+        recipe: recipes,
+        savedAt: saves.createdAt,
+        author: users,
+      })
+      .from(saves)
+      .innerJoin(recipes, eq(saves.recipeId, recipes.id))
+      .innerJoin(users, eq(recipes.userId, users.id))
+      .where(
+        and(
+          eq(saves.collectionId, collectionId),
+          sql`${saves.createdAt} < ${cursor.toISOString()}`
+        )
+      )
+      .orderBy(sql`${saves.createdAt} DESC`)
+      .limit(limit + 1);
+
+    const hasNext = rows.length > limit;
+    const items = rows.slice(0, limit);
+    const nextCursor = hasNext ? items[items.length - 1].savedAt.toISOString() : null;
+
+    return c.json({
+      collection: { id: col.id, name: col.name, is_public: col.isPublic },
+      recipes: items.map(r => ({
+        id: r.recipe.id,
+        title: r.recipe.title,
+        cover_image_url: r.recipe.coverImageUrl,
+        hero_image_url: r.recipe.heroImageUrl,
+        cuisine: r.recipe.cuisine,
+        difficulty: r.recipe.difficulty,
+        prep_minutes: r.recipe.prepMinutes,
+        cook_minutes: r.recipe.cookMinutes,
+        servings: r.recipe.servings,
+        like_count: r.recipe.likeCount ?? 0,
+        save_count: r.recipe.saveCount ?? 0,
+        is_ai_generated: r.recipe.isAiGenerated ?? false,
+        created_at: r.recipe.createdAt.toISOString(),
+        author: {
+          id: r.author.id,
+          username: r.author.username,
+          display_name: r.author.displayName,
+          avatar_url: r.author.avatarUrl,
+        },
+        viewer: null,
+      })),
+      nextCursor,
+    });
+  });
