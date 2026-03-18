@@ -10,17 +10,20 @@ export default function AuthLayout() {
   // This allows signed-in but non-onboarded users to stay on the onboarding page
   if (isSignedIn) {
     return (
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="sign-in" redirect />
-        <Stack.Screen name="sign-up" redirect />
-      </Stack>
+      <>
+        <FocusAwareStatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="sign-in" redirect />
+          <Stack.Screen name="sign-up" redirect />
+        </Stack>
+      </>
     );
   }
 
   return (
     <>
-      <FocusAwareStatusBar style="dark" />
+      <FocusAwareStatusBar style="dark" backgroundColor={COLORS.background} translucent={false} />
       <Stack screenOptions={{ headerShown: false }} />
     </>
   );

@@ -1,3 +1,7 @@
+import type { users } from '@dishly/db';
+
+export type DbUser = typeof users.$inferSelect;
+
 export interface CloudflareEnv {
   ENVIRONMENT: 'development' | 'production';
   DATABASE_URL: string;
@@ -15,6 +19,6 @@ export interface CloudflareEnv {
 }
 
 export interface Variables {
-  user?: unknown; // Will refine this later with the actual User type from Drizzle
+  user?: DbUser;
   clerkId?: string;
 }

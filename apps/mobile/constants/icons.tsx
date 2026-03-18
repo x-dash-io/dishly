@@ -7,8 +7,8 @@ import {
   ChevronDown, ChevronUp, Check, AlertCircle,          // State
   Play, Pause, RotateCcw, Timer,                       // Cook mode
   ShoppingCart, Calendar, Plus, Minus, Trash2,         // Actions
-  Lock, Globe, UserCheck, LogOut, Settings,            // Profile / auth
-  TrendingUp, Zap,                                     // Discovery
+  Lock, Globe, UserCheck, LogOut, Settings, Info,      // Profile / auth
+  TrendingUp, Zap, Menu,                               // Discovery
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { COLORS } from './colors';
@@ -79,8 +79,10 @@ export const Icons = {
   delete:         Trash2,
   trending:       TrendingUp,
   quick:          Zap,
+  menu:           Menu,
 
   // Account
+  info:           Info,
   private:        Lock,
   public:         Globe,
   follow:         UserCheck,

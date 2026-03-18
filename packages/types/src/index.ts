@@ -112,3 +112,22 @@ export interface FullRecipe extends Omit<RecipeCardItem, 'author'> {
     follower_count: number;
   };
 }
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  dietary_prefs: string[];
+  skill_level: 'beginner' | 'intermediate' | 'advanced';
+  created_at: string;
+  stats: {
+    follower_count: number;
+    following_count: number;
+    recipe_count: number;
+  };
+  viewer: {
+    following: boolean;
+  } | null;
+}

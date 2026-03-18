@@ -15,6 +15,7 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [error, setError] = useState('');
 
   // Step 1: Name & Username
@@ -31,6 +32,27 @@ export default function OnboardingScreen() {
 
   // Step 4: Favorite Cuisines
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
+
+  // Initial Onboarding Check
+  useEffect(() => {
+    let mounted = true;
+    async function checkUser() {
+      try {
+        await api.get('/auth/me');
+        // If it succeeds, they are already onboarded, redirect to app
+        if (mounted) {
+          router.replace('/(app)/(tabs)');
+        }
+      } catch (err: any) {
+        // If it throws ONBOARDING_REQUIRED, we let them see the form
+        if (mounted) {
+          setIsCheckingOnboarding(false);
+        }
+      }
+    }
+    checkUser();
+    return () => { mounted = false; };
+  }, []);
 
   // Username validation effect
   useEffect(() => {
@@ -184,6 +206,14 @@ export default function OnboardingScreen() {
       </View>
     </View>
   );
+
+  if (isCheckingOnboarding) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDF6ED' }}>
+         <ActivityIndicator size="large" color="#E8531A" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
