@@ -19,6 +19,7 @@ import { useAuth } from '@clerk/clerk-expo';
 interface RecipeCardProps {
   recipe: RecipeCardItem;
   onPress: () => void;
+  onLongPress?: () => void;
   onAuthorPress: (userId: string) => void;
   onLike: () => void;
   onSave: () => void;
@@ -29,6 +30,7 @@ interface RecipeCardProps {
 export function RecipeCard({
   recipe,
   onPress,
+  onLongPress,
   onAuthorPress,
   onLike,
   onSave,
@@ -44,9 +46,11 @@ export function RecipeCard({
   );
 
   return (
-    <TouchableOpacity 
-      activeOpacity={0.9} 
-      onPress={onPress} 
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={300}
       style={styles.container}
     >
       {/* Image Section */}

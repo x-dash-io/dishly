@@ -8,6 +8,8 @@ import type { CloudflareEnv, Variables } from '../types/env';
 import { requireAuth, optionalAuth, verifyClerkToken } from '../middleware/auth';
 import { getDb } from '../lib/db';
 import { rateLimit } from '../middleware/rate-limit';
+import { getRedis } from '../lib/redis';
+import { withCache, invalidateCache } from '../lib/cache';
 
 export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variables }>()
   /**
@@ -90,41 +92,46 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
   .get('/:username', optionalAuth, async (c) => {
     const username = c.req.param('username');
     const db = getDb(c);
+    const redis = getRedis(c.env);
     const viewer = c.get('user');
 
-    // 1. SELECT user by username
-    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    // 1. Cache static profile data (user row + counts) for 3 minutes
+    // Viewer's follow state is always fetched live — it changes on every follow/unfollow
+    const profile = await withCache(
+      redis,
+      `user:profile:${username}`,
+      180,
+      async () => {
+        const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+        if (!user) return null;
 
-    if (!user) {
-      return c.json({ error: 'User not found' }, 404);
-    }
+        const [counts] = await db
+          .select({
+            followerCount: sql<number>`count(*) filter (where ${follows.followingId} = ${user.id})`,
+            followingCount: sql<number>`count(*) filter (where ${follows.followerId} = ${user.id})`,
+          })
+          .from(follows)
+          .where(sql`${follows.followingId} = ${user.id} or ${follows.followerId} = ${user.id}`);
 
-    // 2. Get counts (follower, following, recipes)
-    const [counts] = await db
-      .select({
-        followerCount: sql<number>`count(*) filter (where ${follows.followingId} = ${user.id})`,
-        followingCount: sql<number>`count(*) filter (where ${follows.followerId} = ${user.id})`,
-      })
-      .from(follows)
-      .where(sql`${follows.followingId} = ${user.id} or ${follows.followerId} = ${user.id}`);
+        const [recipeCountResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(recipes)
+          .where(and(eq(recipes.userId, user.id), eq(recipes.status, 'published')));
 
-    const [recipeCountResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(recipes)
-      .where(and(eq(recipes.userId, user.id), eq(recipes.status, 'published')));
+        return { user, counts, recipeCount: recipeCountResult?.count ?? 0 };
+      }
+    );
 
-    // 3. Check if viewer follows this user
+    if (!profile) return c.json({ error: 'User not found' }, 404);
+    const { user, counts, recipeCount } = profile;
+
+    // 3. Check if viewer follows this user — always live, never cached
     let following = false;
     if (viewer) {
       const [follow] = await db
         .select()
         .from(follows)
-        .where(
-          and(
-            eq(follows.followerId, viewer.id),
-            eq(follows.followingId, user.id)
-          )
-        )
+        .where(and(eq(follows.followerId, viewer.id), eq(follows.followingId, user.id)))
         .limit(1);
       following = !!follow;
     }
@@ -141,7 +148,7 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
       stats: {
         follower_count: Number(counts?.followerCount || 0),
         following_count: Number(counts?.followingCount || 0),
-        recipe_count: Number(recipeCountResult?.count || 0),
+        recipe_count: Number(recipeCount || 0),
       },
       viewer: viewer ? { following } : null,
     });
@@ -184,6 +191,15 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
       .where(eq(users.id, currentUser.id))
       .returning();
 
+    // Invalidate both old and new username keys in case username changed
+    c.executionCtx.waitUntil(
+      invalidateCache(
+        getRedis(c.env),
+        `user:profile:${currentUser.username}`,
+        `user:profile:${body.username ?? currentUser.username}`
+      )
+    );
+
     return c.json(updatedUser);
   })
 
@@ -223,19 +239,19 @@ export const userRoutes = new Hono<{ Bindings: CloudflareEnv, Variables: Variabl
       // Unfollow
       await db
         .delete(follows)
-        .where(
-          and(
-            eq(follows.followerId, currentUser.id),
-            eq(follows.followingId, targetUserId)
-          )
-        );
+        .where(and(eq(follows.followerId, currentUser.id), eq(follows.followingId, targetUserId)));
+      // Invalidate target's cached follower count
+      c.executionCtx.waitUntil(
+        invalidateCache(getRedis(c.env), `user:profile:${targetUser.username}`)
+      );
       return c.json({ following: false });
     } else {
       // Follow
-      await db.insert(follows).values({
-        followerId: currentUser.id,
-        followingId: targetUserId,
-      });
+      await db.insert(follows).values({ followerId: currentUser.id, followingId: targetUserId });
+      // Invalidate target's cached follower count
+      c.executionCtx.waitUntil(
+        invalidateCache(getRedis(c.env), `user:profile:${targetUser.username}`)
+      );
       return c.json({ following: true });
     }
   })

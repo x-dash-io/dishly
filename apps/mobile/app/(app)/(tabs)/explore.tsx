@@ -19,6 +19,7 @@ import { RecipeCardSkeleton } from '../../../components/recipe/RecipeCardSkeleto
 import { Button } from '../../../components/ui/Button';
 import { useRecipeSearch, useTrendingFeed, ExploreFilters } from '../../../hooks/useExplore';
 import { useLikeRecipe, useSaveRecipe } from '../../../hooks/useRecipeActions';
+import { usePrefetchRecipe } from '../../../hooks/usePrefetch';
 import type { RecipeCardItem } from '@dishly/types';
 
 const CUISINES = ['All', 'Italian', 'Japanese', 'West African', 'Mexican', 'Indian', 'Thai'];
@@ -219,10 +220,13 @@ function RecipeCardItemWrapper({
   const { mutate: like } = useLikeRecipe(recipe.id);
   const { mutate: save } = useSaveRecipe(recipe.id);
 
+  const prefetch = usePrefetchRecipe();
+
   return (
     <RecipeCard
       recipe={recipe}
       onPress={onPress}
+      onLongPress={() => prefetch(recipe.id)}
       onAuthorPress={onAuthorPress}
       onLike={() => like()}
       onSave={() => save()}

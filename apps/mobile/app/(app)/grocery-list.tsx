@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList,
+  View, Text, StyleSheet, TouchableOpacity, SectionList,
   ActivityIndicator, Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -8,7 +8,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from '../../constants/colors';
 import { AppIcon } from '../../constants/icons';
-import { useGroceryList, type GroceryItem } from '../../hooks/useMealPlanner';
+import { useGroceryList, type GroceryItem, type GroceryCategory } from '../../hooks/useMealPlanner';
+
+const CATEGORY_LABELS: Record<GroceryCategory, string> = {
+  produce:  'Produce',
+  proteins: 'Proteins',
+  dairy:    'Dairy',
+  pantry:   'Pantry',
+  other:    'Other',
+};
+
+const CATEGORY_ORDER: GroceryCategory[] = ['produce', 'proteins', 'dairy', 'pantry', 'other'];
 
 export default function GroceryListScreen() {
   const router = useRouter();
@@ -16,51 +26,60 @@ export default function GroceryListScreen() {
   const { data, isLoading } = useGroceryList();
   const [checked, setChecked] = useState<Set<string>>(new Set());
 
-  const toggleChecked = (name: string) => {
+  const toggle = (name: string) =>
     setChecked(prev => {
-      const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
-      return next;
+      const s = new Set(prev);
+      s.has(name) ? s.delete(name) : s.add(name);
+      return s;
     });
-  };
+
+  // Build SectionList sections from categories
+  const sections = data
+    ? CATEGORY_ORDER
+        .map(cat => ({
+          key: cat,
+          title: CATEGORY_LABELS[cat],
+          data: (data.categories[cat] ?? []).filter(i => !checked.has(i.name)),
+        }))
+        .filter(s => s.data.length > 0)
+    : [];
+
+  const gotItItems: GroceryItem[] = data
+    ? CATEGORY_ORDER.flatMap(cat => (data.categories[cat] ?? []).filter(i => checked.has(i.name)))
+    : [];
+
+  const totalUnchecked = sections.reduce((n, s) => n + s.data.length, 0);
 
   const handleShare = () => {
-    if (!data?.items.length) return;
-    const lines = data.items.map(i => {
-      const qty = [i.quantity, i.unit].filter(Boolean).join(' ');
-      return qty ? `• ${i.name} — ${qty}` : `• ${i.name}`;
-    });
-    Share.share({
-      title: 'Dishly Grocery List',
-      message: `My grocery list for the week:\n\n${lines.join('\n')}`,
-    });
+    if (!data) return;
+    const lines: string[] = [`Dishly Grocery List — Week of ${data.week_start_date}\n`];
+    for (const cat of CATEGORY_ORDER) {
+      const items = data.categories[cat] ?? [];
+      if (!items.length) continue;
+      lines.push(`${CATEGORY_LABELS[cat]}:`);
+      for (const item of items) {
+        const qty = [item.quantity, item.unit].filter(Boolean).join(' ');
+        lines.push(`• ${item.name}${qty ? ` ${qty}` : ''}`);
+      }
+      lines.push('');
+    }
+    Share.share({ title: 'Dishly Grocery List', message: lines.join('\n') });
   };
-
-  const unchecked = data?.items.filter(i => !checked.has(i.name)) ?? [];
-  const done = data?.items.filter(i => checked.has(i.name)) ?? [];
 
   const renderItem = ({ item }: { item: GroceryItem }) => {
     const isChecked = checked.has(item.name);
     const qty = [item.quantity, item.unit].filter(Boolean).join(' ');
     return (
-      <TouchableOpacity
-        style={[styles.item, isChecked && styles.itemChecked]}
-        onPress={() => toggleChecked(item.name)}
-        activeOpacity={0.75}
-      >
+      <TouchableOpacity style={styles.row} onPress={() => toggle(item.name)} activeOpacity={0.75}>
         <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-          {isChecked && <AppIcon name="check" size={12} color={COLORS.textInverse} />}
+          {isChecked && <AppIcon name="check" size={11} color={COLORS.textInverse} />}
         </View>
-        <View style={styles.itemContent}>
-          <Text style={[styles.itemName, isChecked && styles.itemNameChecked]}>
-            {item.name}
-          </Text>
-          {qty ? <Text style={styles.itemQty}>{qty}</Text> : null}
+        <View style={styles.rowContent}>
+          <Text style={[styles.rowName, isChecked && styles.strikethrough]}>{item.name}</Text>
+          {qty ? <Text style={styles.rowQty}>{qty}</Text> : null}
         </View>
-        {item.recipes.length > 0 && (
-          <Text style={styles.itemSource} numberOfLines={1}>
-            {item.recipes.slice(0, 2).join(', ')}
-          </Text>
+        {item.recipe_count > 1 && (
+          <Text style={styles.recipeCount}>({item.recipe_count} recipes)</Text>
         )}
       </TouchableOpacity>
     );
@@ -70,68 +89,94 @@ export default function GroceryListScreen() {
     <View style={styles.container}>
       <StatusBar style="light" translucent={false} />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <AppIcon name="back" size={24} color={COLORS.textInverse} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Grocery list</Text>
-          {data?.week_start && (
-            <Text style={styles.headerSub}>Week of {data.week_start}</Text>
+          {data?.week_start_date && (
+            <Text style={styles.headerSub}>Week of {data.week_start_date}</Text>
           )}
         </View>
         <TouchableOpacity
-          style={[styles.shareBtn, (!data?.items.length) && styles.shareBtnDisabled]}
+          style={[styles.shareBtn, !data?.total_recipes && styles.disabled]}
           onPress={handleShare}
-          disabled={!data?.items.length}
+          disabled={!data?.total_recipes}
         >
           <AppIcon name="share" size={20} color={COLORS.textInverse} />
         </TouchableOpacity>
       </View>
 
       {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={COLORS.primary} size="large" />
-        </View>
-      ) : !data?.items.length ? (
+        <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>
+      ) : !data?.total_recipes ? (
         <View style={styles.center}>
           <View style={styles.emptyIcon}>
             <AppIcon name="cart" size={36} color={COLORS.secondary} />
           </View>
-          <Text style={styles.emptyTitle}>No ingredients yet</Text>
+          <Text style={styles.emptyTitle}>Nothing here yet</Text>
           <Text style={styles.emptyText}>
-            Add recipes to your meal planner and they'll appear here automatically.
+            Add recipes to your meal planner and the ingredients will appear here automatically.
           </Text>
-          <TouchableOpacity
-            style={styles.plannerBtn}
-            onPress={() => router.push('/meal-planner')}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.plannerBtn} onPress={() => router.push('/meal-planner')}>
             <AppIcon name="calendar" size={16} color={COLORS.textInverse} />
             <Text style={styles.plannerBtnText}>Open meal planner</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList<GroceryItem>
-          data={[...unchecked, ...done]}
+        <SectionList
+          sections={sections}
+          keyExtractor={(item, i) => `${item.name}-${i}`}
           renderItem={renderItem}
-          keyExtractor={item => item.name}
-          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 32 }]}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {section.title.toUpperCase()} ({section.data.length})
+              </Text>
+              <View style={styles.sectionDivider} />
+            </View>
+          )}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 48 }]}
+          stickySectionHeadersEnabled={false}
+          showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.listCount}>
-                {unchecked.length} item{unchecked.length !== 1 ? 's' : ''} remaining
+              <Text style={styles.listSummary}>
+                {totalUnchecked} item{totalUnchecked !== 1 ? 's' : ''} · {data.total_recipes} recipe{data.total_recipes !== 1 ? 's' : ''}
               </Text>
-              {done.length > 0 && (
+              {checked.size > 0 && (
                 <TouchableOpacity onPress={() => setChecked(new Set())}>
                   <Text style={styles.clearBtn}>Clear checked</Text>
                 </TouchableOpacity>
               )}
             </View>
           }
-          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            gotItItems.length > 0 ? (
+              <View style={styles.gotItSection}>
+                <Text style={styles.gotItLabel}>Got it ({gotItItems.length})</Text>
+                {gotItItems.map(item => {
+                  const qty = [item.quantity, item.unit].filter(Boolean).join(' ');
+                  return (
+                    <TouchableOpacity
+                      key={item.name}
+                      style={[styles.row, styles.rowDone]}
+                      onPress={() => toggle(item.name)}
+                    >
+                      <View style={[styles.checkbox, styles.checkboxChecked]}>
+                        <AppIcon name="check" size={11} color={COLORS.textInverse} />
+                      </View>
+                      <View style={styles.rowContent}>
+                        <Text style={[styles.rowName, styles.strikethrough]}>{item.name}</Text>
+                        {qty ? <Text style={styles.rowQty}>{qty}</Text> : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null
+          }
         />
       )}
     </View>
@@ -140,6 +185,7 @@ export default function GroceryListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: COLORS.navDark, paddingBottom: 14, paddingHorizontal: 16,
@@ -149,8 +195,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textInverse },
   headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
   shareBtn: { padding: 8, width: 40, alignItems: 'flex-end' },
-  shareBtnDisabled: { opacity: 0.35 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
+  disabled: { opacity: 0.35 },
   emptyIcon: {
     width: 72, height: 72, borderRadius: 22,
     backgroundColor: COLORS.secondary + '15',
@@ -163,29 +208,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12,
   },
   plannerBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.textInverse },
-  listContent: { paddingHorizontal: 16, paddingTop: 12 },
+  listContent: { paddingHorizontal: 16, paddingTop: 4 },
   listHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingVertical: 12,
   },
-  listCount: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '600' },
+  listSummary: { fontSize: 13, color: COLORS.textSecondary },
   clearBtn: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
-  separator: { height: 1, backgroundColor: COLORS.border, marginVertical: 1 },
-  item: {
+  sectionHeader: { paddingTop: 16, paddingBottom: 8 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.8 },
+  sectionDivider: { height: 1, backgroundColor: COLORS.border, marginTop: 6 },
+  row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 14, paddingHorizontal: 4,
+    paddingVertical: 12,
   },
-  itemChecked: { opacity: 0.45 },
+  rowDone: { opacity: 0.5 },
   checkbox: {
     width: 22, height: 22, borderRadius: 6,
     borderWidth: 1.5, borderColor: COLORS.border,
-    justifyContent: 'center', alignItems: 'center',
-    flexShrink: 0,
+    justifyContent: 'center', alignItems: 'center', flexShrink: 0,
   },
   checkboxChecked: { backgroundColor: COLORS.secondary, borderColor: COLORS.secondary },
-  itemContent: { flex: 1 },
-  itemName: { fontSize: 15, color: COLORS.textPrimary, fontWeight: '500' },
-  itemNameChecked: { textDecorationLine: 'line-through', color: COLORS.textMuted },
-  itemQty: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
-  itemSource: { fontSize: 11, color: COLORS.textMuted, maxWidth: 100, textAlign: 'right' },
+  rowContent: { flex: 1 },
+  rowName: { fontSize: 15, color: COLORS.textPrimary, fontWeight: '500' },
+  strikethrough: { textDecorationLine: 'line-through', color: COLORS.textMuted },
+  rowQty: { fontSize: 13, color: COLORS.textSecondary, marginTop: 1 },
+  recipeCount: { fontSize: 11, color: COLORS.textMuted },
+  gotItSection: { marginTop: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+  gotItLabel: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.8, marginBottom: 4 },
 });

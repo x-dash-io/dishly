@@ -32,6 +32,8 @@ import { requireAuth, optionalAuth } from '../middleware/auth';
 import type { CloudflareEnv, Variables } from '../types/env';
 import { deleteR2Object, getR2Client } from '../lib/r2';
 import { sendPushToUser } from '../lib/notifications';
+import { getRedis } from '../lib/redis';
+import { withCache, invalidateCache } from '../lib/cache';
 
 const app = new Hono<{ Bindings: CloudflareEnv; Variables: Variables }>();
 
@@ -105,6 +107,7 @@ app.post('/', requireAuth, zValidator('json', CreateRecipeSchema), async (c) => 
 
 app.get('/:id', optionalAuth, async (c) => {
   const db = getDb(c);
+  const redis = getRedis(c.env);
   const id = c.req.param('id');
   const currentUser = c.get('user');
 
@@ -115,21 +118,33 @@ app.get('/:id', optionalAuth, async (c) => {
     return c.json({ error: 'Recipe not found' }, 404);
   }
 
+  // Increment view count fire-and-forget — never blocks the response
   c.executionCtx.waitUntil(
     db.update(recipes).set({ viewCount: (recipe.viewCount || 0) + 1 }).where(eq(recipes.id, id))
   );
 
-  const [recipeIngredients, recipeSteps, recipeNutrition, [author]] = await Promise.all([
-    db.select().from(ingredients).where(eq(ingredients.recipeId, id)).orderBy(asc(ingredients.orderIndex)),
-    db.select().from(steps).where(eq(steps.recipeId, id)).orderBy(asc(steps.orderIndex)),
-    db.select().from(nutrition).where(eq(nutrition.recipeId, id)).limit(1),
-    db.select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-    }).from(users).where(eq(users.id, recipe.userId)).limit(1),
-  ]);
+  // Cache static recipe content (ingredients, steps, nutrition, author) for 5 minutes.
+  // Viewer state (liked/saved) is always user-specific — fetched live, never cached.
+  const staticData = await withCache(
+    redis,
+    `recipe:static:${id}`,
+    300,
+    async () => {
+      const [recipeIngredients, recipeSteps, recipeNutrition, [author]] = await Promise.all([
+        db.select().from(ingredients).where(eq(ingredients.recipeId, id)).orderBy(asc(ingredients.orderIndex)),
+        db.select().from(steps).where(eq(steps.recipeId, id)).orderBy(asc(steps.orderIndex)),
+        db.select().from(nutrition).where(eq(nutrition.recipeId, id)).limit(1),
+        db.select({
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          followerCount: users.id, // resolved below via count query if needed
+        }).from(users).where(eq(users.id, recipe.userId)).limit(1),
+      ]);
+      return { recipeIngredients, recipeSteps, recipeNutrition: recipeNutrition ?? null, author };
+    }
+  );
 
   let viewerState = null;
   if (currentUser) {
@@ -140,8 +155,8 @@ app.get('/:id', optionalAuth, async (c) => {
     viewerState = { liked: !!likeRecord, saved: !!saveRecord };
   }
 
-  const viewer: { liked: boolean; saved: boolean } | null = viewerState;
-  
+  const { recipeIngredients, recipeSteps, recipeNutrition, author } = staticData;
+
   return c.json({
     ...recipe,
     ingredients: recipeIngredients,
@@ -153,7 +168,7 @@ app.get('/:id', optionalAuth, async (c) => {
       displayName: author.displayName,
       avatarUrl: author.avatarUrl,
     },
-    viewer,
+    viewer: viewerState,
   });
 });
 
@@ -213,6 +228,10 @@ app.patch('/:id', requireAuth, zValidator('json', UpdateRecipeSchema), async (c)
         }
       }
     });
+
+    // Invalidate cached static data so the next GET reflects the update
+    c.executionCtx.waitUntil(invalidateCache(getRedis(c.env), `recipe:static:${id}`));
+
     return c.json({ success: true });
   } catch (error) {
     console.error('Update failed', error);
@@ -250,6 +269,8 @@ app.post('/:id/publish', requireAuth, zValidator('json', PublishRecipeSchema), a
 
   // Notify followers — fire-and-forget, never block the response
   c.executionCtx.waitUntil((async () => {
+    // Invalidate cached static data (status changed to published)
+    await invalidateCache(getRedis(c.env), `recipe:static:${id}`);
     try {
       const followerRows = await db
         .select({ userId: follows.followerId })

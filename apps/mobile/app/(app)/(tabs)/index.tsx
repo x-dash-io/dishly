@@ -18,6 +18,7 @@ import { RecipeCardSkeleton } from '../../../components/recipe/RecipeCardSkeleto
 import { Button } from '../../../components/ui/Button';
 import { useHomeFeed, FeedType } from '../../../hooks/useFeed';
 import { useLikeRecipe, useSaveRecipe } from '../../../hooks/useRecipeActions';
+import { usePrefetchRecipe } from '../../../hooks/usePrefetch';
 import type { RecipeCardItem } from '@dishly/types';
 
 // Memoized RecipeCard for performance
@@ -151,10 +152,13 @@ function RecipeCardItemWrapper({
   const { mutate: like } = useLikeRecipe(recipe.id);
   const { mutate: save } = useSaveRecipe(recipe.id);
 
+  const prefetch = usePrefetchRecipe();
+
   return (
     <MemoizedRecipeCard
       recipe={recipe}
       onPress={onPress}
+      onLongPress={() => prefetch(recipe.id)}
       onAuthorPress={onAuthorPress}
       onLike={() => like()}
       onSave={() => save()}
