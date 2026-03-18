@@ -249,7 +249,7 @@ ${body.ingredients.map(i => `- ${i}`).join('\n')}`;
 
           if (parsed.ingredients.length > 0) {
             await tx.insert(ingredientsDb).values(
-              parsed.ingredients.map((ing: any, idx: number) => ({
+              parsed.ingredients.map((ing: { name: string; quantity: string; unit: string; notes?: string }, idx: number) => ({
                 recipeId: recipe.id,
                 name: ing.name,
                 quantity: ing.quantity,
@@ -262,10 +262,10 @@ ${body.ingredients.map(i => `- ${i}`).join('\n')}`;
 
           if (parsed.steps.length > 0) {
             await tx.insert(stepsDb).values(
-              parsed.steps.map((st: any, idx: number) => ({
+              parsed.steps.map((st: { instruction: string; timer_seconds?: number }, idx: number) => ({
                 recipeId: recipe.id,
                 instruction: st.instruction,
-                timerSeconds: st.timer_seconds || null,
+                timerSeconds: st.timer_seconds ?? null,
                 orderIndex: idx,
               }))
             );
@@ -484,6 +484,287 @@ Answer their question in the context of this recipe and this step.`;
 
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error';
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
+      }
+    }
+  )
+
+  /**
+   * POST /ai/identify-dish
+   * Pass 1 of dish-to-recipe: identify what the dish is.
+   * Returns immediately so the client can show "Generating recipe for [name]…"
+   */
+  .post(
+    '/identify-dish',
+    requireAuth,
+    rateLimit('ai'),
+    zValidator('json', z.object({ image_url: z.string().url() })),
+    async (c) => {
+      const { image_url } = c.req.valid('json');
+
+      try {
+        const gemini = getGemini(c.env);
+        const model = gemini.getGenerativeModel({
+          model: GEMINI_MODEL,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: SchemaType.OBJECT,
+              properties: {
+                dish_name:  { type: SchemaType.STRING },
+                cuisine:    { type: SchemaType.STRING },
+                confidence: { type: SchemaType.NUMBER },
+                details:    { type: SchemaType.STRING },
+              },
+              required: ['dish_name', 'cuisine', 'confidence'],
+            },
+          },
+        });
+
+        const imagePart = await urlToImagePart(image_url);
+        const prompt = `Look at this food image. Identify:
+1. The name of the dish (be specific — e.g. 'Shakshuka' not just 'egg dish')
+2. The cuisine type
+3. Your confidence level (0.0 to 1.0) that this is a recognisable dish
+4. Any visible garnishes, sides, or notable presentation details
+
+Respond in JSON: { dish_name, cuisine, confidence, details }`;
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const parsed = JSON.parse(result.response.text()) as {
+          dish_name: string;
+          cuisine: string;
+          confidence: number;
+          details?: string;
+        };
+
+        if (parsed.confidence < 0.5) {
+          return c.json({
+            error: 'DISH_NOT_RECOGNISED',
+            message: 'Could not identify the dish clearly enough to generate a recipe',
+          }, 422);
+        }
+
+        return c.json({
+          dish_name:  parsed.dish_name,
+          cuisine:    parsed.cuisine,
+          confidence: parsed.confidence,
+          details:    parsed.details ?? '',
+        });
+
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        if (err instanceof SyntaxError) {
+          return c.json({ error: 'AI_PARSE_ERROR' }, 502);
+        }
+        return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
+      }
+    }
+  )
+
+  /**
+   * POST /ai/dish-to-recipe-from-name
+   * Pass 2 of dish-to-recipe: generate a full recipe given a known dish name.
+   * Takes the output of /ai/identify-dish plus the original image_url for visual context.
+   */
+  .post(
+    '/dish-to-recipe-from-name',
+    requireAuth,
+    rateLimit('ai'),
+    zValidator('json', z.object({
+      dish_name:  z.string().min(1).max(200),
+      cuisine:    z.string().min(1).max(100),
+      details:    z.string().optional().default(''),
+      image_url:  z.string().url(),
+    })),
+    async (c) => {
+      const currentUser = c.get('user')!;
+      const { dish_name, cuisine, details, image_url } = c.req.valid('json');
+      const db = getDb(c);
+      const startTime = Date.now();
+
+      const inserted = await db.insert(aiGenerations).values({
+        userId:       currentUser.id,
+        inputType:    'dish_to_recipe',
+        inputImageUrl: image_url,
+        inputIngredients: [dish_name],
+        modelVersion: GEMINI_MODEL,
+      }).returning({ id: aiGenerations.id });
+
+      const genId = inserted[0]?.id;
+
+      try {
+        const systemPrompt = `You are Dishly's AI chef — creative, encouraging, and practical.
+Recreate the dish "${dish_name}" (${cuisine} cuisine) based on its appearance.
+${details ? `Visual details: ${details}` : ''}
+Generate a complete, accurate home-cook recipe.
+Use common supermarket ingredients.
+Make it delicious and realistic.`;
+
+        const gemini  = getGemini(c.env);
+        const imagePart = await urlToImagePart(image_url);
+
+        const model = gemini.getGenerativeModel({
+          model: GEMINI_MODEL,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: SchemaType.OBJECT,
+              properties: {
+                title:       { type: SchemaType.STRING },
+                description: { type: SchemaType.STRING },
+                cuisine:     { type: SchemaType.STRING },
+                difficulty:  { type: SchemaType.STRING } as object,
+                prep_minutes: { type: SchemaType.NUMBER },
+                cook_minutes: { type: SchemaType.NUMBER },
+                servings:    { type: SchemaType.NUMBER },
+                ingredients: {
+                  type: SchemaType.ARRAY,
+                  items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                      name:     { type: SchemaType.STRING },
+                      quantity: { type: SchemaType.STRING },
+                      unit:     { type: SchemaType.STRING },
+                      notes:    { type: SchemaType.STRING },
+                    },
+                    required: ['name', 'quantity', 'unit'],
+                  },
+                },
+                steps: {
+                  type: SchemaType.ARRAY,
+                  items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                      instruction:   { type: SchemaType.STRING },
+                      timer_seconds: { type: SchemaType.NUMBER },
+                      tips:          { type: SchemaType.STRING },
+                    },
+                    required: ['instruction'],
+                  },
+                },
+                nutrition_estimate: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    calories:  { type: SchemaType.NUMBER },
+                    protein_g: { type: SchemaType.NUMBER },
+                    carbs_g:   { type: SchemaType.NUMBER },
+                    fat_g:     { type: SchemaType.NUMBER },
+                    fibre_g:   { type: SchemaType.NUMBER },
+                  },
+                  required: ['calories'],
+                },
+                tags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+              },
+              required: ['title', 'description', 'cuisine', 'difficulty',
+                         'prep_minutes', 'cook_minutes', 'servings',
+                         'ingredients', 'steps', 'nutrition_estimate'],
+            },
+          },
+        });
+
+        // Pass both the text prompt AND the original image so Gemini
+        // can reference visual details (portion size, toppings, cooking clues)
+        const result = await model.generateContent([systemPrompt, imagePart]);
+        const parsed = JSON.parse(result.response.text());
+
+        if (!parsed.steps?.length || !parsed.ingredients?.length) {
+          throw new Error('AI produced empty ingredients or steps');
+        }
+
+        const clamp = (val: number, min: number, max: number) =>
+          Math.max(min, Math.min(max, val || 0));
+        const nutritionData = parsed.nutrition_estimate;
+        nutritionData.calories = clamp(nutritionData.calories, 50, 2000);
+
+        const newRecipe = await db.transaction(async (tx) => {
+          const [recipe] = await tx.insert(recipes).values({
+            userId:       currentUser.id,
+            title:        parsed.title ?? dish_name,
+            description:  parsed.description,
+            cuisine:      parsed.cuisine ?? cuisine,
+            difficulty:   (parsed.difficulty as 'easy' | 'medium' | 'hard') ?? 'medium',
+            prepMinutes:  parsed.prep_minutes,
+            cookMinutes:  parsed.cook_minutes,
+            servings:     parsed.servings,
+            isAiGenerated: true,
+            status:       'draft',
+            aiGenerationId: genId,
+          }).returning();
+
+          if (!recipe) throw new Error('Failed to insert recipe');
+
+          if (parsed.ingredients.length > 0) {
+            await tx.insert(ingredientsDb).values(
+              parsed.ingredients.map(
+                (ing: { name: string; quantity: string; unit: string; notes?: string }, idx: number) => ({
+                  recipeId:   recipe.id,
+                  name:       ing.name,
+                  quantity:   ing.quantity,
+                  unit:       ing.unit,
+                  notes:      ing.notes,
+                  orderIndex: idx,
+                })
+              )
+            );
+          }
+
+          if (parsed.steps.length > 0) {
+            await tx.insert(stepsDb).values(
+              parsed.steps.map(
+                (st: { instruction: string; timer_seconds?: number }, idx: number) => ({
+                  recipeId:    recipe.id,
+                  instruction: st.instruction,
+                  timerSeconds: st.timer_seconds ?? null,
+                  orderIndex:  idx,
+                })
+              )
+            );
+          }
+
+          await tx.insert(nutritionDb).values({
+            recipeId:   recipe.id,
+            calories:   nutritionData.calories,
+            proteinG:   Math.max(0, nutritionData.protein_g || 0),
+            carbsG:     Math.max(0, nutritionData.carbs_g || 0),
+            fatG:       Math.max(0, nutritionData.fat_g || 0),
+            fibreG:     Math.max(0, nutritionData.fibre_g || 0),
+            isEstimated: true,
+          });
+
+          return recipe;
+        });
+
+        const latencyMs   = Date.now() - startTime;
+        const tokensUsed  = result.response.usageMetadata?.totalTokenCount ?? 0;
+
+        if (genId && newRecipe?.id) {
+          await db.update(aiGenerations)
+            .set({ tokensUsed, latencyMs, outputRecipeId: newRecipe.id })
+            .where(eq(aiGenerations.id, genId));
+        }
+
+        return c.json({
+          generation_id: genId,
+          dish_name,
+          ...newRecipe,
+          ingredients: parsed.ingredients,
+          steps:       parsed.steps,
+          nutrition:   nutritionData,
+          tags:        parsed.tags ?? [],
+        }, 201);
+
+      } catch (err: unknown) {
+        const latencyMs = Date.now() - startTime;
+        const message   = err instanceof Error ? err.message : 'AI_GENERATION_ERROR';
+        if (genId) {
+          await db.update(aiGenerations)
+            .set({ latencyMs, error: message })
+            .where(eq(aiGenerations.id, genId));
+        }
+        if (err instanceof SyntaxError) {
+          return c.json({ error: 'AI_PARSE_ERROR' }, 502);
+        }
         return c.json({ error: 'AI_GENERATION_FAILED', message }, 502);
       }
     }
